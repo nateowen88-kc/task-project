@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TaskStatus {
+  BLOCKED
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum RecurrenceRule {
+  DAILY
+  WEEKDAYS
+  WEEKLY
+  MONTHLY
+}
+
+enum CaptureSourceType {
+  SLACK
+  EMAIL
+}
+
+enum CaptureStatus {
+  NEW
+  ACCEPTED
+  DISCARDED
+}
+
+model Task {
+  id             String           @id @default(cuid())
+  title          String
+  details        String           @default("")
+  dueDate        DateTime
+  remindAt       DateTime?
+  status         TaskStatus       @default(TODO)
+  sortOrder      Int              @default(0)
+  isRecurring    Boolean          @default(false)
+  recurrenceRule RecurrenceRule?
+  plannedForDate DateTime?
+  archivedAt     DateTime?
+  blockedReason  String?
+  completedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now()) @updatedAt
+  links          TaskLink[]
+  occurrences    TaskOccurrence[]
+  capturedItems  CapturedItem[]
+
+  @@index([dueDate, status])
+  @@index([status, sortOrder])
+  @@index([plannedForDate, status])
+}
+
+model TaskLink {
+  id        String   @id @default(cuid())
+  taskId    String
+  label     String?
+  url       String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, sortOrder])
+}
+
+model TaskOccurrence {
+  id           String     @id @default(cuid())
+  taskId       String
+  scheduledFor DateTime
+  dueDate      DateTime
+  status       TaskStatus @default(TODO)
+  completedAt  DateTime?
+  skippedAt    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @default(now()) @updatedAt
+  task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, scheduledFor])
+  @@index([scheduledFor, status])
+}
+
+model CapturedItem {
+  id               String            @id @default(cuid())
+  sourceType       CaptureSourceType
+  status           CaptureStatus     @default(NEW)
+  externalId       String?
+  title            String
+  body             String            @default("")
+  sourceLabel      String?
+  sourceUrl        String?
+  sender           String?
+  suggestedDueDate DateTime?
+  receivedAt       DateTime
+  acceptedAt       DateTime?
+  discardedAt      DateTime?
+  taskId           String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @default(now()) @updatedAt
+  task             Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([status, receivedAt])
+  @@index([sourceType, receivedAt])
+  @@unique([sourceType, externalId])
+}
