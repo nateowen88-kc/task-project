@@ -6,6 +6,9 @@ import react from "@vitejs/plugin-react";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const certPath = path.resolve(__dirname, "certs/timesmith.test.pem");
+const keyPath = path.resolve(__dirname, "certs/timesmith.test-key.pem");
+const hasLocalHttpsCerts = fs.existsSync(certPath) && fs.existsSync(keyPath);
 
 export default defineConfig({
   plugins: [react()],
@@ -13,18 +16,20 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
-    https: {
-      cert: fs.readFileSync(path.resolve(__dirname, "certs/timesmith.test.pem")),
-      key: fs.readFileSync(path.resolve(__dirname, "certs/timesmith.test-key.pem")),
-    },
+    ...(hasLocalHttpsCerts
+      ? {
+          https: {
+            cert: fs.readFileSync(certPath),
+            key: fs.readFileSync(keyPath),
+          },
+        }
+      : {}),
     allowedHosts: [
       "medieval-solutions-limits-webshots.trycloudflare.com",
       "timesmith.test",
     ],
     proxy: {
-    "/api": "http://localhost:3001",
-  },
+      "/api": "http://localhost:3001",
     },
-    
   },
-);
+});
