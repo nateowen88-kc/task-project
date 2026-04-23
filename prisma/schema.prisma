@@ -13,6 +13,12 @@ enum TaskStatus {
   DONE
 }
 
+enum TaskImportance {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 enum RecurrenceRule {
   DAILY
   WEEKDAYS
@@ -31,13 +37,112 @@ enum CaptureStatus {
   DISCARDED
 }
 
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  USER
+}
+
+enum TaskActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNEE_CHANGED
+  COMMENT_ADDED
+  ARCHIVED
+  DELETED
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  COMMENT_ADDED
+  TASK_DUE
+  TASK_OVERDUE
+}
+
+enum WorkspaceInviteRole {
+  ADMIN
+  USER
+}
+
+model User {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  name            String
+  passwordHash    String
+  isGodMode       Boolean           @default(false)
+  defaultWorkspaceId String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  defaultWorkspace Workspace?       @relation("UserDefaultWorkspace", fields: [defaultWorkspaceId], references: [id], onDelete: SetNull)
+  ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
+  memberships     WorkspaceMember[]
+  sessions        Session[]
+  assignedTasks   Task[]            @relation("TaskAssignee")
+  createdTasks    Task[]            @relation("TaskCreator")
+  taskComments    TaskComment[]     @relation("TaskCommentAuthor")
+  taskActivities  TaskActivity[]    @relation("TaskActivityActor")
+  receivedNotifications Notification[] @relation("NotificationRecipient")
+  actorNotifications    Notification[] @relation("NotificationActor")
+  sentWorkspaceInvites  WorkspaceInvite[] @relation("WorkspaceInviteSender")
+}
+
+model Workspace {
+  id            String            @id @default(cuid())
+  name          String
+  slug          String            @unique
+  ownerId       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @default(now()) @updatedAt
+  owner         User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  defaultUsers  User[]            @relation("UserDefaultWorkspace")
+  memberships   WorkspaceMember[]
+  tasks         Task[]
+  occurrences   TaskOccurrence[]
+  capturedItems CapturedItem[]
+  taskComments  TaskComment[]
+  taskActivities TaskActivity[]
+  notifications Notification[]
+  invites       WorkspaceInvite[]
+}
+
+model WorkspaceMember {
+  id          String        @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole @default(USER)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId, role])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  tokenHash  String   @unique
+  userId     String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
 model Task {
   id             String           @id @default(cuid())
+  workspaceId     String
+  createdById     String?
+  assigneeId      String?
   title          String
   details        String           @default("")
   dueDate        DateTime
   remindAt       DateTime?
   status         TaskStatus       @default(TODO)
+  importance     TaskImportance   @default(MEDIUM)
   sortOrder      Int              @default(0)
   isRecurring    Boolean          @default(false)
   recurrenceRule RecurrenceRule?
@@ -47,10 +152,19 @@ model Task {
   completedAt    DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @default(now()) @updatedAt
+  workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User?            @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  assignee       User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   links          TaskLink[]
   occurrences    TaskOccurrence[]
   capturedItems  CapturedItem[]
+  comments       TaskComment[]
+  activities     TaskActivity[]
+  notifications  Notification[]
 
+  @@index([workspaceId, dueDate, status])
+  @@index([workspaceId, status, sortOrder])
+  @@index([workspaceId, plannedForDate, status])
   @@index([dueDate, status])
   @@index([status, sortOrder])
   @@index([plannedForDate, status])
@@ -71,6 +185,7 @@ model TaskLink {
 
 model TaskOccurrence {
   id           String     @id @default(cuid())
+  workspaceId   String
   taskId       String
   scheduledFor DateTime
   dueDate      DateTime
@@ -79,14 +194,17 @@ model TaskOccurrence {
   skippedAt    DateTime?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @default(now()) @updatedAt
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   task         Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, scheduledFor])
+  @@index([workspaceId, scheduledFor, status])
   @@index([scheduledFor, status])
 }
 
 model CapturedItem {
   id               String            @id @default(cuid())
+  workspaceId       String
   sourceType       CaptureSourceType
   status           CaptureStatus     @default(NEW)
   externalId       String?
@@ -102,9 +220,86 @@ model CapturedItem {
   taskId           String?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @default(now()) @updatedAt
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   task             Task?             @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
+  @@index([workspaceId, status, receivedAt])
+  @@index([workspaceId, sourceType, receivedAt])
   @@index([status, receivedAt])
   @@index([sourceType, receivedAt])
   @@unique([sourceType, externalId])
+}
+
+model TaskComment {
+  id          String    @id @default(cuid())
+  workspaceId String
+  taskId      String
+  authorId    String?
+  body        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  task        Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author      User?     @relation("TaskCommentAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([taskId, createdAt])
+}
+
+model TaskActivity {
+  id           String           @id @default(cuid())
+  workspaceId  String
+  taskId       String
+  actorUserId  String?
+  type         TaskActivityType
+  message      String
+  createdAt    DateTime         @default(now())
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  task         Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor        User?            @relation("TaskActivityActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([taskId, createdAt])
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  workspaceId String
+  userId      String
+  actorUserId String?
+  taskId      String?
+  type        NotificationType
+  title       String
+  body        String
+  dedupeKey   String?          @unique
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now()) @updatedAt
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor       User?            @relation("NotificationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  task        Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+  @@index([workspaceId, createdAt])
+  @@index([taskId, createdAt])
+}
+
+model WorkspaceInvite {
+  id          String              @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceInviteRole @default(USER)
+  token       String              @unique
+  invitedById String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @default(now()) @updatedAt
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedBy   User?               @relation("WorkspaceInviteSender", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, email, createdAt])
+  @@index([workspaceId, expiresAt])
 }
