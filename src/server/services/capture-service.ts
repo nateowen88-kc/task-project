@@ -61,7 +61,28 @@ export function getSlackDeepLink(teamId: string | undefined, channelId: string |
   return `https://app.slack.com/client/${teamId}/${channelId}/thread/${channelId}-${messageTs.replace(".", "")}`;
 }
 
-export function verifySlackSignature(request: express.Request, rawBody: Buffer) {
+type HeaderCarrier =
+  | express.Request
+  | {
+      headers?: Record<string, string | string[] | undefined>;
+      header?: (name: string) => string | undefined | null;
+    };
+
+function getHeader(request: HeaderCarrier, name: string) {
+  if ("header" in request && typeof request.header === "function") {
+    return request.header(name) ?? null;
+  }
+
+  const value = request.headers?.[name.toLowerCase()];
+
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+export function verifySlackSignature(request: HeaderCarrier, rawBody: Buffer) {
   if (slackDisableSignatureVerification) {
     return true;
   }
@@ -70,8 +91,8 @@ export function verifySlackSignature(request: express.Request, rawBody: Buffer) 
     return false;
   }
 
-  const timestamp = request.header("x-slack-request-timestamp");
-  const signature = request.header("x-slack-signature");
+  const timestamp = getHeader(request, "x-slack-request-timestamp");
+  const signature = getHeader(request, "x-slack-signature");
 
   if (!timestamp || !signature) {
     return false;

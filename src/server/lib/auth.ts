@@ -42,6 +42,20 @@ export type AuthenticatedRequest = express.Request & {
   auth: AuthContext;
 };
 
+function getHeaderValue(request: express.Request | { headers?: Record<string, string | string[] | undefined> }, name: string) {
+  if ("header" in request && typeof request.header === "function") {
+    return request.header(name) ?? null;
+  }
+
+  const value = request.headers?.[name.toLowerCase()];
+
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
 function resolveWorkspaceForUser(user: UserRecord) {
   if (user.isGodMode && user.defaultWorkspace) {
     return user.defaultWorkspace;
@@ -124,7 +138,7 @@ export function getTaskPermissions(
 }
 
 export function parseCookies(request: express.Request) {
-  const header = request.header("cookie");
+  const header = getHeaderValue(request, "cookie");
   if (!header) {
     return new Map<string, string>();
   }
@@ -159,7 +173,7 @@ function toApiWorkspace(
 }
 
 function shouldUseAllWorkspacesScope(request: express.Request, user: UserRecord) {
-  return user.isGodMode && request.header("x-timesmith-scope") === "all";
+  return user.isGodMode && getHeaderValue(request, "x-timesmith-scope") === "all";
 }
 
 function slugify(value: string) {

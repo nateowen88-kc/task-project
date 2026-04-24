@@ -57,7 +57,7 @@ function isAllowedOrigin(origin: string) {
   return false;
 }
 
-export function createApp() {
+export function createBaseApp() {
   const app = express();
 
   app.set("trust proxy", 1);
@@ -77,14 +77,6 @@ export function createApp() {
   );
 
   app.use(express.json());
-  app.use("/api/auth", createAuthRouter());
-  app.use("/api/notifications", createNotificationsRouter());
-  app.use("/api/workspace-members", createWorkspaceMembersRouter());
-  app.use("/", createTodayRouter());
-  app.use("/", createTasksRouter());
-  app.use("/", createCapturedItemsRouter());
-  app.use("/", createIntegrationsRouter());
-  app.use("/api/admin", requireWorkspaceAdmin, createAdminRouter());
   app.use((error: unknown, _request: express.Request, response: express.Response, next: express.NextFunction) => {
     if (!(error instanceof Error)) {
       next(error);
@@ -98,6 +90,21 @@ export function createApp() {
 
     next(error);
   });
+
+  return app;
+}
+
+export function createApp() {
+  const app = createBaseApp();
+
+  app.use("/api/auth", createAuthRouter());
+  app.use("/api/notifications", createNotificationsRouter());
+  app.use("/api/workspace-members", createWorkspaceMembersRouter());
+  app.use("/", createTodayRouter());
+  app.use("/", createTasksRouter());
+  app.use("/", createCapturedItemsRouter());
+  app.use("/", createIntegrationsRouter());
+  app.use("/api/admin", requireWorkspaceAdmin, createAdminRouter());
 
   return app;
 }
