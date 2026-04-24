@@ -35,6 +35,48 @@ export function getOrigin(request: NativeRequest) {
   return getHeader(request, "origin");
 }
 
+export function isAllowedBrowserOrigin(origin: string) {
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return true;
+    }
+
+    if (hostname === "timesmithhq.com" || hostname === "www.timesmithhq.com") {
+      return true;
+    }
+
+    if (hostname.endsWith(".timesmithhq.com") || hostname.endsWith(".vercel.app")) {
+      return true;
+    }
+
+    if (hostname === "timesmith.test" || hostname === "storyminer.test") {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+export function rejectDisallowedBrowserOrigin(request: NativeRequest, response: NativeResponse) {
+  const origin = getOrigin(request);
+
+  if (!origin) {
+    return false;
+  }
+
+  if (isAllowedBrowserOrigin(origin)) {
+    return false;
+  }
+
+  sendJson(response, 403, { error: "Origin is not allowed." });
+  return true;
+}
+
 export function matchPath(pathname: string, pattern: string) {
   const sourceParts = pathname.split("/").filter(Boolean);
   const patternParts = pattern.split("/").filter(Boolean);

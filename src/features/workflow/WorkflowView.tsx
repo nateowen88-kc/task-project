@@ -162,7 +162,7 @@ export function WorkflowView({
                     {task.links.length > 0 && (
                       <div className="link-list">
                         {task.links.map((link) => (
-                          <a key={link} href={link} target="_blank" rel="noreferrer">
+                          <a key={link} href={link} target="_blank" rel="noopener noreferrer">
                             {link}
                           </a>
                         ))}

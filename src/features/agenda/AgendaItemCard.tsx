@@ -120,7 +120,7 @@ export function AgendaItemCard({
       {item.links.length > 0 && (
         <div className="link-list">
           {item.links.map((link) => (
-            <a key={link} href={link} target="_blank" rel="noreferrer">
+            <a key={link} href={link} target="_blank" rel="noopener noreferrer">
               {link}
             </a>
           ))}

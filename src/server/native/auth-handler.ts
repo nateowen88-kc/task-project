@@ -33,6 +33,7 @@ import {
   NativeResponse,
   notFound,
   readJsonBody,
+  rejectDisallowedBrowserOrigin,
   sendEmpty,
   sendJson,
 } from "./http.js";
@@ -107,6 +108,10 @@ async function requireAuth(request: NativeRequest, response: NativeResponse) {
 export default async function authHandler(request: NativeRequest, response: NativeResponse) {
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
+
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && rejectDisallowedBrowserOrigin(request, response)) {
+    return;
+  }
 
   if (method === "GET" && pathname === API_ROUTES.auth.me) {
     try {

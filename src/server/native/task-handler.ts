@@ -37,6 +37,7 @@ import {
   NativeResponse,
   notFound,
   readJsonBody,
+  rejectDisallowedBrowserOrigin,
   sendEmpty,
   sendJson,
 } from "./http.js";
@@ -66,6 +67,11 @@ async function getAuth(request: NativeRequest, response: NativeResponse) {
 export default async function taskHandler(request: NativeRequest, response: NativeResponse) {
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
+
+  if (method !== "GET" && method !== "HEAD" && method !== "OPTIONS" && rejectDisallowedBrowserOrigin(request, response)) {
+    return;
+  }
+
   const auth = await getAuth(request, response);
 
   if (!auth) {

@@ -73,7 +73,7 @@ export function InboxView({
 
               {item.sourceUrl && (
                 <div className="link-list">
-                  <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                  <a href={item.sourceUrl} target="_blank" rel="noopener noreferrer">
                     {item.sourceUrl}
                   </a>
                 </div>

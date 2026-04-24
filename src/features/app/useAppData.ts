@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AdminUser,
   AgendaResponse,
@@ -87,6 +87,11 @@ export function useAppData({ onError }: UseAppDataOptions) {
   const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorkspaceSwitching, setIsWorkspaceSwitching] = useState(false);
+  const sessionRef = useRef<AuthSession | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const clearLoadedData = useCallback(() => {
     setTasks([]);
@@ -107,7 +112,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
 
   const refreshAppData = useCallback(
     async (nextSession?: AuthSession | null, requestedTargets?: RefreshTargets) => {
-      const effectiveSession = nextSession ?? session;
+      const effectiveSession = nextSession ?? sessionRef.current;
 
       if (!effectiveSession) {
         return;
@@ -191,7 +196,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
         }
       });
     },
-    [session],
+    [],
   );
 
   const applyAuthenticatedSession = useCallback(
@@ -202,6 +207,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
           : nextSession;
 
       clearLoadedData();
+      sessionRef.current = persistedAllWorkspaces;
       setSession(persistedAllWorkspaces);
       await refreshAppData(persistedAllWorkspaces, {
         tasks: true,
@@ -220,6 +226,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
   const clearSessionData = useCallback(() => {
     window.localStorage.removeItem("timesmith-all-workspaces");
     setSession(null);
+    sessionRef.current = null;
     clearLoadedData();
   }, [clearLoadedData]);
 
@@ -236,6 +243,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
           const nextSession = sessionWithAllWorkspaces(session);
           window.localStorage.setItem("timesmith-all-workspaces", "true");
           clearLoadedData();
+          sessionRef.current = nextSession;
           setSession(nextSession);
           await refreshAppData(nextSession, {
             tasks: true,
@@ -252,6 +260,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
         window.localStorage.removeItem("timesmith-all-workspaces");
         const nextSession = await switchWorkspace(nextWorkspaceId);
         clearLoadedData();
+        sessionRef.current = nextSession;
         setSession(nextSession);
         await refreshAppData(nextSession, {
           tasks: true,
@@ -287,7 +296,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
     }
 
     void load();
-  }, [applyAuthenticatedSession, onError]);
+  }, []);
 
   return {
     session,
