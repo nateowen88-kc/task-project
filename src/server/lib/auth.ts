@@ -14,6 +14,7 @@ import {
 const sessionCookieName = "timesmith_session";
 const sessionLifetimeDays = 30;
 const isProduction = process.env.NODE_ENV === "production";
+const sessionCookieDomain = process.env.SESSION_COOKIE_DOMAIN?.trim() || null;
 
 export type UserRecord = Prisma.UserGetPayload<{
   include: {
@@ -217,6 +218,10 @@ export function serializeSessionCookie(token: string, expiresAt: Date) {
     parts.push("Secure");
   }
 
+  if (sessionCookieDomain) {
+    parts.push(`Domain=${sessionCookieDomain}`);
+  }
+
   return parts.join("; ");
 }
 
@@ -231,6 +236,10 @@ export function clearSessionCookie() {
 
   if (isProduction) {
     parts.push("Secure");
+  }
+
+  if (sessionCookieDomain) {
+    parts.push(`Domain=${sessionCookieDomain}`);
   }
 
   return parts.join("; ");

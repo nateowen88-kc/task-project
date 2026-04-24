@@ -26,6 +26,37 @@ const allowedOrigins = new Set([
   ...configuredOrigins,
 ]);
 
+function isAllowedOrigin(origin: string) {
+  if (allowedOrigins.has(origin)) {
+    return true;
+  }
+
+  try {
+    const url = new URL(origin);
+    const hostname = url.hostname.toLowerCase();
+
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return true;
+    }
+
+    if (hostname.endsWith(".vercel.app")) {
+      return true;
+    }
+
+    if (hostname === "timesmithhq.com" || hostname === "www.timesmithhq.com") {
+      return true;
+    }
+
+    if (hostname.endsWith(".timesmithhq.com")) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 export function createApp() {
   const app = express();
 
@@ -34,7 +65,7 @@ export function createApp() {
   app.use(
     cors({
       origin(origin, callback) {
-        if (!origin || allowedOrigins.has(origin)) {
+        if (!origin || isAllowedOrigin(origin)) {
           callback(null, true);
           return;
         }
@@ -54,6 +85,19 @@ export function createApp() {
   app.use("/", createCapturedItemsRouter());
   app.use("/", createIntegrationsRouter());
   app.use("/api/admin", requireWorkspaceAdmin, createAdminRouter());
+  app.use((error: unknown, _request: express.Request, response: express.Response, next: express.NextFunction) => {
+    if (!(error instanceof Error)) {
+      next(error);
+      return;
+    }
+
+    if (error.message.includes("not allowed by CORS")) {
+      response.status(403).json({ error: error.message });
+      return;
+    }
+
+    next(error);
+  });
 
   return app;
 }
