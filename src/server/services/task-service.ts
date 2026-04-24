@@ -171,14 +171,20 @@ export async function fetchTaskDetail(auth: AuthContext, taskId: string): Promis
 
   const [comments, activities] = await Promise.all([
     prisma.taskComment.findMany({
-      where: workspaceScopedIdWhere(auth, taskId),
+      where: {
+        taskId,
+        ...(auth.allWorkspaces ? {} : { workspaceId: auth.workspace.id }),
+      },
       include: {
         author: { select: { name: true } },
       },
       orderBy: [{ createdAt: "asc" }],
     }),
     prisma.taskActivity.findMany({
-      where: workspaceScopedIdWhere(auth, taskId),
+      where: {
+        taskId,
+        ...(auth.allWorkspaces ? {} : { workspaceId: auth.workspace.id }),
+      },
       include: {
         actor: { select: { name: true } },
       },
