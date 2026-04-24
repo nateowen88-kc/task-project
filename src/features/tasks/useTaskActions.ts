@@ -2,6 +2,7 @@ import { FormEvent, useState } from "react";
 import {
   acceptCapturedItem,
   AgendaResponse,
+  AuthSession,
   CapturedItem,
   Notification,
   Task,
@@ -35,7 +36,18 @@ type UseTaskActionsOptions = {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   setAgenda: React.Dispatch<React.SetStateAction<AgendaResponse | null>>;
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
-  refreshAppData: () => Promise<void>;
+  refreshAppData: (
+    nextSession?: AuthSession | null,
+    requestedTargets?: {
+      tasks?: boolean;
+      workspaceMembers?: boolean;
+      notifications?: boolean;
+      capturedItems?: boolean;
+      agenda?: boolean;
+      adminUsers?: boolean;
+      adminInvites?: boolean;
+    },
+  ) => Promise<void>;
   focusedItemKey: string | null;
   onAdvanceFocus: (item: TodayItem) => void;
   onError: (message: string | null) => void;
@@ -93,15 +105,33 @@ export function useTaskActions({
     onError(null);
 
     try {
+      let savedTask: Task | null = null;
+
       if (editingId) {
-        await updateTask(editingId, draft);
+        savedTask = await updateTask(editingId, draft);
       } else if (reviewCaptureId) {
         await acceptCapturedItem(reviewCaptureId, draft);
       } else {
-        await createTask(draft);
+        savedTask = await createTask(draft);
       }
 
-      await refreshAppData();
+      if (savedTask) {
+        setTasks((current) => {
+          const existingIndex = current.findIndex((task) => task.id === savedTask!.id);
+          if (existingIndex === -1) {
+            return sortByDueDate([...current, savedTask!]);
+          }
+
+          const next = current.slice();
+          next[existingIndex] = savedTask!;
+          return sortByDueDate(next);
+        });
+      }
+
+      await refreshAppData(undefined, {
+        tasks: true,
+        agenda: true,
+      });
       closeModal();
     } catch (error) {
       onError(toErrorMessage(error, "Could not save task."));
@@ -183,7 +213,7 @@ export function useTaskActions({
 
     try {
       await updateTaskStatus(taskId, status);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
     } catch (error) {
       setTasks(previousTasks);
       onError(toErrorMessage(error, "Could not move task."));
@@ -199,7 +229,7 @@ export function useTaskActions({
 
     try {
       await updateTodayItemStatus(item.sourceType, item.id, status);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
 
       if (status === "done" && focusedItemKey === `${item.sourceType}:${item.id}`) {
         onAdvanceFocus(item);
@@ -235,7 +265,7 @@ export function useTaskActions({
 
     try {
       await archiveTask(editingId);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
       closeModal();
     } catch (error) {
       onError(toErrorMessage(error, "Could not archive task."));
@@ -254,7 +284,7 @@ export function useTaskActions({
 
     try {
       await deleteTask(editingId);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
       closeModal();
     } catch (error) {
       onError(toErrorMessage(error, "Could not delete task."));
@@ -268,7 +298,7 @@ export function useTaskActions({
 
     try {
       await skipTodayItem(item.sourceType, item.id);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
 
       if (focusedItemKey === `${item.sourceType}:${item.id}`) {
         onAdvanceFocus(item);
@@ -283,7 +313,7 @@ export function useTaskActions({
 
     try {
       await snoozeTodayItem(item.sourceType, item.id);
-      await refreshAppData();
+      await refreshAppData(undefined, { tasks: true, agenda: true });
 
       if (focusedItemKey === `${item.sourceType}:${item.id}`) {
         onAdvanceFocus(item);
