@@ -492,7 +492,9 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     return;
   }
 
-  const todayItemStatusMatch = matchPath(pathname, "/api/today-items/:source/:id/status");
+  const todayItemStatusMatch =
+    matchPath(pathname, "/api/today-items/:source/:id/status") ??
+    matchPath(pathname, "/api/tasks/today-items/:source/:id/status");
   if (method === "PATCH" && todayItemStatusMatch) {
     const input = (await readJsonBody<{ status?: string }>(request)) ?? {};
     const statusValue = input.status;
@@ -581,7 +583,9 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     return;
   }
 
-  const todayItemSkipMatch = matchPath(pathname, "/api/today-items/:source/:id/skip");
+  const todayItemSkipMatch =
+    matchPath(pathname, "/api/today-items/:source/:id/skip") ??
+    matchPath(pathname, "/api/tasks/today-items/:source/:id/skip");
   if (method === "PATCH" && todayItemSkipMatch) {
     const source = todayItemSkipMatch.source;
 
@@ -641,7 +645,9 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     return;
   }
 
-  const todayItemSnoozeMatch = matchPath(pathname, "/api/today-items/:source/:id/snooze");
+  const todayItemSnoozeMatch =
+    matchPath(pathname, "/api/today-items/:source/:id/snooze") ??
+    matchPath(pathname, "/api/tasks/today-items/:source/:id/snooze");
   if (method === "PATCH" && todayItemSnoozeMatch) {
     const source = todayItemSnoozeMatch.source;
     const tomorrow = toDateOnly(formatDate(addDays(new Date(), 1)));
