@@ -192,7 +192,12 @@ export function useTaskActions({
       const nextDetail = await createTaskComment(editingId, commentDraft);
       setTaskDetail(nextDetail);
       setCommentDraft("");
-      setNotifications(await fetchNotifications());
+
+      try {
+        setNotifications(await fetchNotifications());
+      } catch {
+        // Do not surface notification refresh failures as comment-save failures.
+      }
     } catch (error) {
       onError(toErrorMessage(error, "Could not add comment."));
     } finally {

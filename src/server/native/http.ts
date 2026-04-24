@@ -128,6 +128,7 @@ export function sendJson(response: NativeResponse, status: number, body: unknown
   const payload = JSON.stringify(body);
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
 
   for (const [key, value] of Object.entries(headers ?? {})) {
     response.setHeader(key, value);
@@ -139,6 +140,7 @@ export function sendJson(response: NativeResponse, status: number, body: unknown
 export function sendText(response: NativeResponse, status: number, body: string, headers?: Record<string, string>) {
   response.statusCode = status;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
 
   for (const [key, value] of Object.entries(headers ?? {})) {
     response.setHeader(key, value);
@@ -149,6 +151,7 @@ export function sendText(response: NativeResponse, status: number, body: string,
 
 export function sendEmpty(response: NativeResponse, status = 204, headers?: Record<string, string>) {
   response.statusCode = status;
+  response.setHeader("Cache-Control", "no-store");
 
   for (const [key, value] of Object.entries(headers ?? {})) {
     response.setHeader(key, value);
