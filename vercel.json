@@ -60,10 +60,6 @@
       "destination": "/api/notifications/index"
     },
     {
-      "source": "/api/today-items/:path*",
-      "destination": "/api/tasks/today-items/:path*"
-    },
-    {
       "source": "/api/workspace-members",
       "destination": "/api/notifications/workspace-members"
     },
