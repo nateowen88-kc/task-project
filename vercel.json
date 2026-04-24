@@ -48,8 +48,12 @@
   ],
   "rewrites": [
     {
+      "source": "/api/tasks",
+      "destination": "/api/tasks/index"
+    },
+    {
       "source": "/api/today",
-      "destination": "/api/today/index"
+      "destination": "/api/agenda/today"
     },
     {
       "source": "/api/notifications",
@@ -57,7 +61,7 @@
     },
     {
       "source": "/api/workspace-members",
-      "destination": "/api/workspace-members/index"
+      "destination": "/api/notifications/workspace-members"
     },
     {
       "source": "/api/captured-items",

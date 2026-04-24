@@ -116,7 +116,12 @@ export async function workspaceMembersHandler(request: NativeRequest, response: 
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
 
-  if (method !== "GET" || (pathname !== API_ROUTES.workspaceMembers.list && pathname !== "/api/workspace-members/index")) {
+  if (
+    method !== "GET" ||
+    (pathname !== API_ROUTES.workspaceMembers.list &&
+      pathname !== "/api/workspace-members/index" &&
+      pathname !== "/api/notifications/workspace-members")
+  ) {
     pathname.startsWith("/api/workspace-members") ? methodNotAllowed(response) : notFound(response);
     return;
   }
@@ -149,7 +154,10 @@ export async function todayHandler(request: NativeRequest, response: NativeRespo
     return;
   }
 
-  if (method === "GET" && (pathname === API_ROUTES.agenda.today || pathname === "/api/today/index")) {
+  if (
+    method === "GET" &&
+    (pathname === API_ROUTES.agenda.today || pathname === "/api/today/index" || pathname === "/api/agenda/today")
+  ) {
     const dateValue = getUrl(request).searchParams.get("date") ?? formatDate(new Date());
     const agenda = await buildAgendaSnapshot(auth.workspace.id, toDateOnly(dateValue), {
       promoteCandidates: false,
