@@ -48,10 +48,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/tasks",
-      "destination": "/api/tasks/index"
-    },
-    {
       "source": "/api/today",
       "destination": "/api/today/index"
     },
