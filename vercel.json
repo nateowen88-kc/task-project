@@ -32,6 +32,26 @@
   ],
   "rewrites": [
     {
+      "source": "/api/tasks",
+      "destination": "/api/tasks/index"
+    },
+    {
+      "source": "/api/today",
+      "destination": "/api/today/index"
+    },
+    {
+      "source": "/api/notifications",
+      "destination": "/api/notifications/index"
+    },
+    {
+      "source": "/api/workspace-members",
+      "destination": "/api/workspace-members/index"
+    },
+    {
+      "source": "/api/captured-items",
+      "destination": "/api/captured-items/index"
+    },
+    {
       "source": "/",
       "destination": "/index.html"
     },

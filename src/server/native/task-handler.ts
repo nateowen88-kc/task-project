@@ -72,7 +72,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     return;
   }
 
-  if (method === "GET" && pathname === API_ROUTES.tasks.list) {
+  if (method === "GET" && (pathname === API_ROUTES.tasks.list || pathname === "/api/tasks/index")) {
     const tasks = await prisma.task.findMany({
       where: {
         ...workspaceWhere(auth),

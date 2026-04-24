@@ -63,7 +63,7 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
     return;
   }
 
-  if (method === "GET" && pathname === API_ROUTES.capturedItems.list) {
+  if (method === "GET" && (pathname === API_ROUTES.capturedItems.list || pathname === "/api/captured-items/index")) {
     const items = await prisma.capturedItem.findMany({
       where: {
         ...workspaceWhere(auth),
