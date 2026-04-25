@@ -158,6 +158,7 @@ export function AdminView({
                 onChange={(event) => onAdminFormChange((current) => ({ ...current, password: event.target.value }))}
                 placeholder={adminEditingUserId ? "Leave blank to keep current password" : "At least 8 characters"}
                 minLength={adminEditingUserId ? undefined : 8}
+                autoComplete="new-password"
                 required={!adminEditingUserId}
               />
             </label>

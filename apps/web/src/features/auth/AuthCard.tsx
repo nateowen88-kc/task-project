@@ -89,7 +89,14 @@ function AuthCard({ error, isSubmitting, mode, inviteLookup, onModeChange, onSub
 
           <label>
             Password
-            <input name="password" type="password" placeholder="At least 8 characters" minLength={8} required />
+            <input
+              name="password"
+              type="password"
+              placeholder="At least 8 characters"
+              minLength={8}
+              autoComplete={mode === "login" && !invite ? "current-password" : "new-password"}
+              required
+            />
           </label>
 
           <button className="primary-button" type="submit" disabled={isSubmitting}>
