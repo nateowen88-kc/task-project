@@ -12,6 +12,7 @@ export type NotificationType = "task-assigned" | "comment-added" | "task-due" | 
 export type AppPermissions = {
   canManageUsers: boolean;
   canCreateUsers: boolean;
+  canCreateWorkspaces: boolean;
   canPromoteToOwner: boolean;
   canResetPasswords: boolean;
   canAssignTasks: boolean;
@@ -223,6 +224,17 @@ export type WorkspaceInviteLookup = {
   invite: WorkspaceInvite;
 };
 
+export type AdminWorkspace = {
+  id: string;
+  name: string;
+  slug: string;
+  ownerUserId: string;
+  ownerName: string;
+  ownerEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type LoginPayload = {
   email: string;
   password: string;
@@ -245,6 +257,13 @@ export type AdminUserPayload = {
 export type CreateWorkspaceInvitePayload = {
   email: string;
   role: WorkspaceInviteRole;
+};
+
+export type CreateWorkspacePayload = {
+  workspaceName: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPassword: string;
 };
 
 export type AcceptWorkspaceInvitePayload = {

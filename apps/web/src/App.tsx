@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchInvite, type WorkspaceInviteLookup } from "./api";
+import { fetchInvite, fetchSession, type WorkspaceInviteLookup } from "./api";
 import { AgendaView } from "./features/agenda/AgendaView";
 import { SideRail } from "./features/layout/SideRail";
 import { InboxView } from "./features/inbox/InboxView";
@@ -76,6 +76,7 @@ export default function App() {
   const [inviteLookup, setInviteLookup] = useState<WorkspaceInviteLookup | null>(null);
 
   const canManageUsers = Boolean(session?.permissions.canManageUsers);
+  const canCreateWorkspaces = Boolean(session?.permissions.canCreateWorkspaces);
   const canPromoteToOwner = Boolean(session?.permissions.canPromoteToOwner);
   const canResetPasswords = Boolean(session?.permissions.canResetPasswords);
   const canAssignTasks = Boolean(session?.permissions.canAssignTasks);
@@ -187,18 +188,32 @@ export default function App() {
     isPasswordResettingUserId,
     inviteLink,
     revokingInviteId,
+    workspaceForm,
+    setWorkspaceForm,
+    isWorkspaceSaving,
+    createdWorkspace,
     resetAdminForm,
     resetInviteForm,
+    resetWorkspaceForm,
     startAdminEdit,
     handleResetUserPassword,
     handleAdminSubmit,
     handleInviteSubmit,
     handleRevokeInvite,
+    handleWorkspaceSubmit,
   } = useAdminActions({
     canManageUsers,
+    canCreateWorkspaces,
     canPromoteToOwner,
     canResetPasswords,
     refreshAppData,
+    refreshSession: async () => {
+      const nextSession = await fetchSession();
+      if (nextSession) {
+        await applyAuthenticatedSession(nextSession);
+      }
+      return nextSession;
+    },
     onError: setError,
     onNavigateAdmin: () => setActiveView("admin"),
   });
@@ -493,22 +508,29 @@ export default function App() {
               adminEditingUserId={adminEditingUserId}
               isAdminSaving={isAdminSaving}
               isInviteSaving={isInviteSaving}
+              canCreateWorkspaces={canCreateWorkspaces}
               canPromoteToOwner={canPromoteToOwner}
               canResetPasswords={canResetPasswords}
               isPasswordResettingUserId={isPasswordResettingUserId}
               inviteLink={inviteLink}
               revokingInviteId={revokingInviteId}
+              workspaceForm={workspaceForm}
+              isWorkspaceSaving={isWorkspaceSaving}
+              createdWorkspace={createdWorkspace}
               roleLabels={ROLE_LABELS}
               todayBadge={todayBadge}
               workspaceName={session.workspace.name}
               onResetForm={resetAdminForm}
               onResetInviteForm={resetInviteForm}
+              onResetWorkspaceForm={resetWorkspaceForm}
               onStartEdit={startAdminEdit}
               onResetPassword={(user) => void handleResetUserPassword(user)}
               onAdminFormChange={(updater) => setAdminForm((current) => updater(current))}
               onInviteFormChange={(updater) => setInviteForm((current) => updater(current))}
+              onWorkspaceFormChange={(updater) => setWorkspaceForm((current) => updater(current))}
               onSubmit={(event) => void handleAdminSubmit(event)}
               onInviteSubmit={(event) => void handleInviteSubmit(event)}
+              onWorkspaceSubmit={(event) => void handleWorkspaceSubmit(event)}
               onRevokeInvite={(inviteId) => void handleRevokeInvite(inviteId)}
             />
           )}

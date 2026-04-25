@@ -1,9 +1,12 @@
 import { FormEvent, useState } from "react";
 import {
+  AuthSession,
+  AdminWorkspace,
   AdminUser,
   WorkspaceInviteRole,
   WorkspaceRole,
   createAdminUser,
+  createWorkspace,
   createWorkspaceInvite,
   resetAdminUserPassword,
   revokeWorkspaceInvite,
@@ -26,6 +29,13 @@ export type InviteFormState = {
   role: WorkspaceInviteRole;
 };
 
+export type WorkspaceFormState = {
+  workspaceName: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPassword: string;
+};
+
 function createEmptyAdminForm(): AdminFormState {
   return {
     name: "",
@@ -42,20 +52,33 @@ function createEmptyInviteForm(): InviteFormState {
   };
 }
 
+function createEmptyWorkspaceForm(): WorkspaceFormState {
+  return {
+    workspaceName: "",
+    ownerName: "",
+    ownerEmail: "",
+    ownerPassword: "",
+  };
+}
+
 type UseAdminActionsOptions = {
   canManageUsers: boolean;
+  canCreateWorkspaces: boolean;
   canPromoteToOwner: boolean;
   canResetPasswords: boolean;
   refreshAppData: () => Promise<void>;
+  refreshSession: () => Promise<AuthSession | null>;
   onError: (message: string | null) => void;
   onNavigateAdmin: () => void;
 };
 
 export function useAdminActions({
   canManageUsers,
+  canCreateWorkspaces,
   canPromoteToOwner,
   canResetPasswords,
   refreshAppData,
+  refreshSession,
   onError,
   onNavigateAdmin,
 }: UseAdminActionsOptions) {
@@ -67,6 +90,9 @@ export function useAdminActions({
   const [isInviteSaving, setIsInviteSaving] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [revokingInviteId, setRevokingInviteId] = useState<string | null>(null);
+  const [workspaceForm, setWorkspaceForm] = useState<WorkspaceFormState>(createEmptyWorkspaceForm());
+  const [isWorkspaceSaving, setIsWorkspaceSaving] = useState(false);
+  const [createdWorkspace, setCreatedWorkspace] = useState<AdminWorkspace | null>(null);
 
   function resetAdminForm() {
     setAdminForm(createEmptyAdminForm());
@@ -76,6 +102,11 @@ export function useAdminActions({
   function resetInviteForm() {
     setInviteForm(createEmptyInviteForm());
     setInviteLink(null);
+  }
+
+  function resetWorkspaceForm() {
+    setWorkspaceForm(createEmptyWorkspaceForm());
+    setCreatedWorkspace(null);
   }
 
   function startAdminEdit(user: AdminUser) {
@@ -179,6 +210,29 @@ export function useAdminActions({
     }
   }
 
+  async function handleWorkspaceSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canCreateWorkspaces) {
+      onError("You do not have permission to create workspaces.");
+      return;
+    }
+
+    try {
+      setIsWorkspaceSaving(true);
+      onError(null);
+      const workspace = await createWorkspace(workspaceForm);
+      setCreatedWorkspace(workspace);
+      await refreshSession();
+      resetWorkspaceForm();
+      setCreatedWorkspace(workspace);
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not create workspace."));
+    } finally {
+      setIsWorkspaceSaving(false);
+    }
+  }
+
   return {
     adminForm,
     setAdminForm,
@@ -190,12 +244,18 @@ export function useAdminActions({
     isInviteSaving,
     inviteLink,
     revokingInviteId,
+    workspaceForm,
+    setWorkspaceForm,
+    isWorkspaceSaving,
+    createdWorkspace,
     resetAdminForm,
     resetInviteForm,
+    resetWorkspaceForm,
     startAdminEdit,
     handleResetUserPassword,
     handleAdminSubmit,
     handleInviteSubmit,
     handleRevokeInvite,
+    handleWorkspaceSubmit,
   };
 }

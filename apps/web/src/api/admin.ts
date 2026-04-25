@@ -1,7 +1,9 @@
 import { request } from "./client";
 import type {
+  AdminWorkspace,
   AdminUser,
   AdminUserPayload,
+  CreateWorkspacePayload,
   CreateWorkspaceInvitePayload,
   WorkspaceInvite,
   WorkspaceMember,
@@ -41,6 +43,13 @@ function createWorkspaceInvite(payload: CreateWorkspaceInvitePayload) {
   });
 }
 
+function createWorkspace(payload: CreateWorkspacePayload) {
+  return request<AdminWorkspace>(API_ROUTES.admin.workspaces, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 function revokeWorkspaceInvite(id: string) {
   return request<null>(API_ROUTES.admin.invite(id), {
     method: "DELETE",
@@ -63,6 +72,7 @@ async function resetAdminUserPassword(userId: string) {
 
 export {
   createAdminUser,
+  createWorkspace,
   createWorkspaceInvite,
   fetchAdminUsers,
   fetchWorkspaceInvites,

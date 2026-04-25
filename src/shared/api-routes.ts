@@ -16,6 +16,7 @@ export const API_ROUTES = {
     resetPassword: (id: string) => `/api/admin/users/${id}/reset-password`,
     invites: "/api/admin/invites",
     invite: (id: string) => `/api/admin/invites/${id}`,
+    workspaces: "/api/admin/workspaces",
   },
   agenda: {
     today: "/api/today",

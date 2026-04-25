@@ -14,10 +14,16 @@ import { prisma } from "../lib/db.js";
 import { toApiAdminUser, toApiWorkspaceInvite } from "../lib/serializers.js";
 import { createTemporaryPassword, hashPassword } from "../lib/auth.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
-import type { AdminUserPayload, CreateWorkspaceInvitePayload } from "../../../../../src/shared/api-types.js";
+import type {
+  AdminUserPayload,
+  CreateWorkspaceInvitePayload,
+  CreateWorkspacePayload,
+} from "../../../../../src/shared/api-types.js";
 import { sendWorkspaceInviteEmail } from "../services/email-service.js";
 import {
+  createWorkspaceWithOwner,
   validateAdminUserInput,
+  validateCreateWorkspaceInput,
   workspaceRoleMap,
   createWorkspaceMembership,
   updateWorkspaceMembershipRole,
@@ -34,6 +40,23 @@ export function createAdminRouter() {
 
     const protocol = request.header("x-forwarded-proto") ?? request.protocol;
     return `${protocol}://${request.get("host")}`;
+  }
+
+  function toApiAdminWorkspace(workspace: { id: string; name: string; slug: string; createdAt: Date; updatedAt: Date }, owner: {
+    id: string;
+    name: string;
+    email: string;
+  }) {
+    return {
+      id: workspace.id,
+      name: workspace.name,
+      slug: workspace.slug,
+      ownerUserId: owner.id,
+      ownerName: owner.name,
+      ownerEmail: owner.email,
+      createdAt: workspace.createdAt.toISOString(),
+      updatedAt: workspace.updatedAt.toISOString(),
+    };
   }
 
   router.get(API_ROUTES.admin.users.replace("/api/admin", ""), async (request, response) => {
@@ -175,6 +198,33 @@ export function createAdminRouter() {
     }
 
     response.status(201).json(toApiWorkspaceInvite(invite, getInviteBaseUrl(request)));
+  });
+
+  router.post(API_ROUTES.admin.workspaces.replace("/api/admin", ""), async (request, response) => {
+    const auth = authOf(request);
+
+    if (!auth.user.isGodMode) {
+      response.status(403).json({ error: "Only god mode admins can create workspaces." });
+      return;
+    }
+
+    const input = request.body as Partial<CreateWorkspacePayload>;
+
+    if (!validateCreateWorkspaceInput(input)) {
+      response.status(400).json({
+        error: "Workspace name, owner name, owner email, and an 8+ character owner password are required.",
+      });
+      return;
+    }
+
+    try {
+      const result = await prisma.$transaction((tx) => createWorkspaceWithOwner(tx, input));
+      response.status(201).json(toApiAdminWorkspace(result.workspace, result.owner));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not create workspace.";
+      const status = message.includes("God mode users") ? 409 : 400;
+      response.status(status).json({ error: message });
+    }
   });
 
   router.delete("/invites/:id", async (request, response) => {

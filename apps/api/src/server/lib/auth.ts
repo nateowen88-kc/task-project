@@ -104,6 +104,7 @@ export function getAppPermissions(auth: AuthContext): ApiAuthSession["permission
   return {
     canManageUsers: isWorkspaceAdmin(auth),
     canCreateUsers: isWorkspaceAdmin(auth),
+    canCreateWorkspaces: auth.user.isGodMode,
     canPromoteToOwner: isWorkspaceOwner(auth),
     canResetPasswords: canResetPasswords(auth),
     canAssignTasks: canAssignTasks(auth),
@@ -293,6 +294,7 @@ export async function toApiSession(user: UserRecord, workspaceId: string): Promi
       permissions: {
         canManageUsers: true,
         canCreateUsers: true,
+        canCreateWorkspaces: true,
         canPromoteToOwner: true,
         canResetPasswords: true,
         canAssignTasks: true,
@@ -321,6 +323,7 @@ export async function toApiSession(user: UserRecord, workspaceId: string): Promi
     permissions: {
       canManageUsers: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
       canCreateUsers: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
+      canCreateWorkspaces: false,
       canPromoteToOwner: membership.role === WorkspaceRole.OWNER,
       canResetPasswords: membership.role === WorkspaceRole.OWNER,
       canAssignTasks: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,

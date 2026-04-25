@@ -1,9 +1,9 @@
-import { AdminUser, WorkspaceInvite, WorkspaceInviteRole, WorkspaceRole } from "../../api";
+import { AdminUser, AdminWorkspace, WorkspaceInvite, WorkspaceInviteRole, WorkspaceRole } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
-import type { AdminFormState, InviteFormState } from "./useAdminActions";
+import type { AdminFormState, InviteFormState, WorkspaceFormState } from "./useAdminActions";
 
 type AdminViewProps = {
   adminUsers: AdminUser[];
@@ -13,22 +13,29 @@ type AdminViewProps = {
   adminEditingUserId: string | null;
   isAdminSaving: boolean;
   isInviteSaving: boolean;
+  canCreateWorkspaces: boolean;
   canPromoteToOwner: boolean;
   canResetPasswords: boolean;
   isPasswordResettingUserId: string | null;
   inviteLink: string | null;
   revokingInviteId: string | null;
+  workspaceForm: WorkspaceFormState;
+  isWorkspaceSaving: boolean;
+  createdWorkspace: AdminWorkspace | null;
   roleLabels: Record<WorkspaceRole, string>;
   todayBadge: { month: string; day: number; weekday: string };
   workspaceName: string;
   onResetForm: () => void;
   onResetInviteForm: () => void;
+  onResetWorkspaceForm: () => void;
   onStartEdit: (user: AdminUser) => void;
   onResetPassword: (user: AdminUser) => void;
   onAdminFormChange: (updater: (current: AdminFormState) => AdminFormState) => void;
   onInviteFormChange: (updater: (current: InviteFormState) => InviteFormState) => void;
+  onWorkspaceFormChange: (updater: (current: WorkspaceFormState) => WorkspaceFormState) => void;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   onInviteSubmit: React.FormEventHandler<HTMLFormElement>;
+  onWorkspaceSubmit: React.FormEventHandler<HTMLFormElement>;
   onRevokeInvite: (inviteId: string) => void;
 };
 
@@ -40,22 +47,29 @@ export function AdminView({
   adminEditingUserId,
   isAdminSaving,
   isInviteSaving,
+  canCreateWorkspaces,
   canPromoteToOwner,
   canResetPasswords,
   isPasswordResettingUserId,
   inviteLink,
   revokingInviteId,
+  workspaceForm,
+  isWorkspaceSaving,
+  createdWorkspace,
   roleLabels,
   todayBadge,
   workspaceName,
   onResetForm,
   onResetInviteForm,
+  onResetWorkspaceForm,
   onStartEdit,
   onResetPassword,
   onAdminFormChange,
   onInviteFormChange,
+  onWorkspaceFormChange,
   onSubmit,
   onInviteSubmit,
+  onWorkspaceSubmit,
   onRevokeInvite,
 }: AdminViewProps) {
   return (
@@ -278,6 +292,86 @@ export function AdminView({
             )}
           </div>
         </section>
+
+        {canCreateWorkspaces && (
+          <section className="admin-form-panel">
+            <div className="section-heading">
+              <SectionHeaderLead>
+                <p className="eyebrow">God Mode</p>
+                <h2>Create workspace</h2>
+              </SectionHeaderLead>
+            </div>
+
+            <form className="task-form" onSubmit={onWorkspaceSubmit}>
+              <label>
+                Workspace name
+                <input
+                  value={workspaceForm.workspaceName}
+                  onChange={(event) =>
+                    onWorkspaceFormChange((current) => ({ ...current, workspaceName: event.target.value }))
+                  }
+                  required
+                />
+              </label>
+
+              <label>
+                Owner name
+                <input
+                  value={workspaceForm.ownerName}
+                  onChange={(event) => onWorkspaceFormChange((current) => ({ ...current, ownerName: event.target.value }))}
+                  required
+                />
+              </label>
+
+              <label>
+                Owner email
+                <input
+                  type="email"
+                  value={workspaceForm.ownerEmail}
+                  onChange={(event) =>
+                    onWorkspaceFormChange((current) => ({ ...current, ownerEmail: event.target.value }))
+                  }
+                  required
+                />
+              </label>
+
+              <label>
+                Owner password
+                <input
+                  type="password"
+                  value={workspaceForm.ownerPassword}
+                  onChange={(event) =>
+                    onWorkspaceFormChange((current) => ({ ...current, ownerPassword: event.target.value }))
+                  }
+                  minLength={8}
+                  autoComplete="new-password"
+                  required
+                />
+              </label>
+
+              {createdWorkspace && (
+                <div className="detail-card">
+                  <div className="detail-card-top">
+                    <strong>{createdWorkspace.name}</strong>
+                    <span>{createdWorkspace.slug}</span>
+                  </div>
+                  <p>
+                    Owner: {createdWorkspace.ownerName} ({createdWorkspace.ownerEmail})
+                  </p>
+                </div>
+              )}
+
+              <div className="admin-form-actions">
+                <button className="ghost-button" type="button" onClick={onResetWorkspaceForm}>
+                  Clear
+                </button>
+                <button className="primary-button" type="submit" disabled={isWorkspaceSaving}>
+                  {isWorkspaceSaving ? "Creating..." : "Create workspace"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
       </div>
     </section>
   );
