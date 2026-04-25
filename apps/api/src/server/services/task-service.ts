@@ -3,7 +3,7 @@ import { Prisma, PrismaClient, RecurrenceRule, TaskActivityType, TaskStatus } fr
 import { prisma } from "../lib/db.js";
 import { toDateOnly, toDateTime } from "../lib/dates.js";
 import { toApiTask, toApiTaskActivity, toApiTaskComment, type ApiTask } from "../lib/serializers.js";
-import { getTaskPermissions, type AuthContext, workspaceScopedIdWhere } from "../lib/auth.js";
+import { getTaskPermissions, type AuthContext, taskScopedIdWhere } from "../lib/auth.js";
 
 export type StatusValue = "blocked" | "todo" | "in-progress" | "done";
 export type RecurrenceValue = "none" | "daily" | "weekdays" | "weekly" | "monthly";
@@ -157,7 +157,7 @@ export async function createTaskActivity(
 
 export async function fetchTaskDetail(auth: AuthContext, taskId: string): Promise<ApiTaskDetail | null> {
   const task = await prisma.task.findFirst({
-    where: workspaceScopedIdWhere(auth, taskId),
+    where: taskScopedIdWhere(auth, taskId),
     include: {
       workspace: true,
       links: { orderBy: { sortOrder: "asc" } },

@@ -477,12 +477,30 @@ export function workspaceWhere(auth: AuthContext) {
   return auth.allWorkspaces ? {} : { workspaceId: auth.workspace.id };
 }
 
+export function hasPersonalTaskWorkspaceView(auth: AuthContext) {
+  return !auth.user.isGodMode && auth.memberships.length > 1 && !isWorkspaceAdmin(auth);
+}
+
+export function personalTaskWhere(auth: AuthContext) {
+  if (!hasPersonalTaskWorkspaceView(auth)) {
+    return {};
+  }
+
+  return {
+    OR: [{ createdById: auth.user.id }, { assigneeId: auth.user.id }],
+  };
+}
+
 export function workspaceWhereForUser(auth: AuthContext, userId: string) {
   return auth.allWorkspaces ? { userId } : { workspaceId: auth.workspace.id, userId };
 }
 
 export function workspaceScopedIdWhere(auth: AuthContext, id: string) {
   return auth.allWorkspaces ? { id } : { id, workspaceId: auth.workspace.id };
+}
+
+export function taskScopedIdWhere(auth: AuthContext, id: string) {
+  return auth.allWorkspaces ? { id } : { id, workspaceId: auth.workspace.id, ...personalTaskWhere(auth) };
 }
 
 export function canManageUsers(auth: AuthContext) {

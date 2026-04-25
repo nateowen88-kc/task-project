@@ -3,6 +3,8 @@ import {
   canAssignTasks,
   getAuthContext,
   getTaskPermissions,
+  personalTaskWhere,
+  taskScopedIdWhere,
   workspaceScopedIdWhere,
   workspaceWhere,
 } from "../lib/auth.js";
@@ -82,6 +84,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     const tasks = await prisma.task.findMany({
       where: {
         ...workspaceWhere(auth),
+        ...personalTaskWhere(auth),
         archivedAt: null,
       },
       include: taskInclude,
@@ -115,7 +118,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     }
 
     const task = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, commentsMatch.id),
+      where: taskScopedIdWhere(auth, commentsMatch.id),
       select: {
         id: true,
         workspaceId: true,
@@ -257,7 +260,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     }
 
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, taskIdMatch.id),
+      where: taskScopedIdWhere(auth, taskIdMatch.id),
     });
 
     if (!existing || existing.archivedAt) {
@@ -379,7 +382,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
     }
 
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, taskStatusMatch.id),
+      where: taskScopedIdWhere(auth, taskStatusMatch.id),
       include: taskInclude,
     });
 
@@ -428,7 +431,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
   const taskArchiveMatch = matchPath(pathname, "/api/tasks/:id/archive");
   if (method === "PATCH" && taskArchiveMatch) {
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, taskArchiveMatch.id),
+      where: taskScopedIdWhere(auth, taskArchiveMatch.id),
       include: taskInclude,
     });
 
@@ -470,7 +473,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
 
   if (method === "DELETE" && taskIdMatch) {
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, taskIdMatch.id),
+      where: taskScopedIdWhere(auth, taskIdMatch.id),
       select: { id: true, archivedAt: true, createdById: true, assigneeId: true },
     });
 
@@ -509,7 +512,7 @@ export default async function taskHandler(request: NativeRequest, response: Nati
 
     if (source === "task") {
       const existing = await prisma.task.findFirst({
-        where: workspaceScopedIdWhere(auth, todayItemStatusMatch.id),
+        where: taskScopedIdWhere(auth, todayItemStatusMatch.id),
         include: taskInclude,
       });
 

@@ -8,7 +8,7 @@ import {
   toApiTodayOccurrence,
   toApiTodayTask,
 } from "../lib/serializers.js";
-import { buildAuthContext, getTaskPermissions } from "../lib/auth.js";
+import { buildAuthContext, getTaskPermissions, personalTaskWhere } from "../lib/auth.js";
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const geminiModel = process.env.GEMINI_MODEL ?? "gemini-1.5-flash";
@@ -271,11 +271,15 @@ export async function buildAgendaSnapshot(
   const agendaTargetSize = 5;
   const promoteCandidates = options?.promoteCandidates ?? false;
   const includeAiRanking = options?.includeAiRanking ?? false;
+  const viewerAuth = options?.viewerUserId ? await buildAuthContext(options.viewerUserId) : null;
+  const viewerTaskWhere =
+    viewerAuth && viewerAuth.workspace.id === workspaceId ? personalTaskWhere(viewerAuth) : {};
 
   if (promoteCandidates) {
     await prisma.task.updateMany({
       where: {
         workspaceId,
+        ...viewerTaskWhere,
         isRecurring: false,
         status: { not: TaskStatus.DONE },
         archivedAt: null,
@@ -292,6 +296,7 @@ export async function buildAgendaSnapshot(
   const mandatoryTasks = await prisma.task.findMany({
     where: {
       workspaceId,
+      ...viewerTaskWhere,
       isRecurring: false,
       status: { not: TaskStatus.DONE },
       archivedAt: null,
@@ -310,7 +315,7 @@ export async function buildAgendaSnapshot(
       scheduledFor: { gte: start, lte: end },
       status: { not: TaskStatus.DONE },
       skippedAt: null,
-      task: { archivedAt: null },
+      task: { archivedAt: null, ...viewerTaskWhere },
     },
   });
 
@@ -321,6 +326,7 @@ export async function buildAgendaSnapshot(
     const candidateTasks = await prisma.task.findMany({
       where: {
         workspaceId,
+        ...viewerTaskWhere,
         isRecurring: false,
         status: { not: TaskStatus.DONE },
         archivedAt: null,
@@ -368,6 +374,7 @@ export async function buildAgendaSnapshot(
   const todayTasks = await prisma.task.findMany({
     where: {
       workspaceId,
+      ...viewerTaskWhere,
       isRecurring: false,
       archivedAt: null,
       OR: [{ dueDate: { lte: end } }, { plannedForDate: { gte: start, lte: end } }],
@@ -398,7 +405,7 @@ export async function buildAgendaSnapshot(
       workspaceId,
       scheduledFor: { gte: start, lte: end },
       skippedAt: null,
-      task: { archivedAt: null },
+      task: { archivedAt: null, ...viewerTaskWhere },
     },
     include: {
       task: {
@@ -418,7 +425,6 @@ export async function buildAgendaSnapshot(
       { reason: item.reason, confidence: item.confidence },
     ]),
   );
-  const viewerAuth = options?.viewerUserId ? await buildAuthContext(options.viewerUserId) : null;
 
   return {
     date: formatDate(target),

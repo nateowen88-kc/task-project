@@ -4,7 +4,9 @@ import {
   authOf,
   canAssignTasks,
   getTaskPermissions,
+  personalTaskWhere,
   requireAuth,
+  taskScopedIdWhere,
   workspaceScopedIdWhere,
   workspaceWhere,
 } from "../lib/auth.js";
@@ -43,6 +45,7 @@ export function createTasksRouter() {
     const tasks = await prisma.task.findMany({
       where: {
         ...workspaceWhere(auth),
+        ...personalTaskWhere(auth),
         archivedAt: null,
       },
       include: {
@@ -78,7 +81,7 @@ export function createTasksRouter() {
     }
 
     const task = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, request.params.id),
+      where: taskScopedIdWhere(auth, request.params.id),
       select: {
         id: true,
         workspaceId: true,
@@ -223,7 +226,7 @@ export function createTasksRouter() {
     }
 
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, request.params.id),
+      where: taskScopedIdWhere(auth, request.params.id),
     });
 
     if (!existing || existing.archivedAt) {
@@ -346,7 +349,7 @@ export function createTasksRouter() {
     }
 
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, request.params.id),
+      where: taskScopedIdWhere(auth, request.params.id),
       include: {
         workspace: true,
         links: { orderBy: { sortOrder: "asc" } },
@@ -401,7 +404,7 @@ export function createTasksRouter() {
   router.patch("/api/tasks/:id/archive", async (request, response) => {
     const auth = authOf(request);
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, request.params.id),
+      where: taskScopedIdWhere(auth, request.params.id),
       include: {
         workspace: true,
         links: { orderBy: { sortOrder: "asc" } },
@@ -451,7 +454,7 @@ export function createTasksRouter() {
   router.delete("/api/tasks/:id", async (request, response) => {
     const auth = authOf(request);
     const existing = await prisma.task.findFirst({
-      where: workspaceScopedIdWhere(auth, request.params.id),
+      where: taskScopedIdWhere(auth, request.params.id),
       select: { id: true, archivedAt: true, createdById: true, assigneeId: true },
     });
 
@@ -486,7 +489,7 @@ export function createTasksRouter() {
 
     if (source === "task") {
       const existing = await prisma.task.findFirst({
-        where: workspaceScopedIdWhere(auth, request.params.id),
+        where: taskScopedIdWhere(auth, request.params.id),
         include: {
           workspace: true,
           links: { orderBy: { sortOrder: "asc" } },
