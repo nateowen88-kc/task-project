@@ -4,8 +4,8 @@ import { Prisma, WorkspaceRole } from "@prisma/client";
 
 import { prisma } from "./db.js";
 import { addDays } from "./dates.js";
+import type { AuthSession } from "../../../../../src/shared/api-types.js";
 import {
-  type ApiAuthSession,
   type ApiTask,
   type ApiWorkspace,
   reverseWorkspaceRoleMap,
@@ -100,7 +100,7 @@ export function canAssignTasks(auth: AuthContext) {
   return auth.user.isGodMode || isWorkspaceAdmin(auth);
 }
 
-export function getAppPermissions(auth: AuthContext): ApiAuthSession["permissions"] {
+export function getAppPermissions(auth: AuthContext): AuthSession["permissions"] {
   return {
     canManageUsers: isWorkspaceAdmin(auth),
     canCreateUsers: isWorkspaceAdmin(auth),
@@ -260,7 +260,7 @@ export function clearSessionCookie() {
   return parts.join("; ");
 }
 
-export async function toApiSession(user: UserRecord, workspaceId: string): Promise<ApiAuthSession> {
+export async function toApiSession(user: UserRecord, workspaceId: string): Promise<AuthSession> {
   if (user.isGodMode) {
     const workspaces = await prisma.workspace.findMany({
       orderBy: [{ createdAt: "asc" }],
