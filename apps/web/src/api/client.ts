@@ -39,3 +39,4 @@ async function request<T>(input: RequestInfo, init?: RequestInit) {
 }
 
 export { request };
+export { resolveRequestInput };

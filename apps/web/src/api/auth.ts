@@ -1,4 +1,4 @@
-import { request } from "./client";
+import { request, resolveRequestInput } from "./client";
 import type {
   AcceptWorkspaceInvitePayload,
   AuthSession,
@@ -9,7 +9,7 @@ import type {
 import { API_ROUTES } from "../../../../src/shared/api-routes";
 
 async function fetchSession() {
-  const response = await fetch(API_ROUTES.auth.me, {
+  const response = await fetch(resolveRequestInput(API_ROUTES.auth.me), {
     credentials: "include",
   });
 
@@ -57,21 +57,10 @@ async function logout() {
 }
 
 async function switchWorkspace(workspaceId: string) {
-  const response = await fetch(API_ROUTES.auth.workspace, {
+  return request<AuthSession>(API_ROUTES.auth.workspace, {
     method: "PATCH",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ workspaceId }),
   });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => ({ error: "Unable to switch workspace." }));
-    throw new Error(payload.error ?? "Unable to switch workspace.");
-  }
-
-  return (await response.json()) as AuthSession;
 }
 
 export { acceptInvite, fetchInvite, fetchSession, login, logout, register, switchWorkspace };
