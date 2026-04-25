@@ -46,6 +46,8 @@ export default function App() {
     session,
     adminUsers,
     hasLoadedAdminUsers,
+    adminWorkspaces,
+    hasLoadedAdminWorkspaces,
     adminInvites,
     hasLoadedAdminInvites,
     workspaceMembers,
@@ -192,6 +194,8 @@ export default function App() {
     setWorkspaceForm,
     isWorkspaceSaving,
     createdWorkspace,
+    updatingWorkspaceId,
+    togglingWorkspaceId,
     resetAdminForm,
     resetInviteForm,
     resetWorkspaceForm,
@@ -201,6 +205,8 @@ export default function App() {
     handleInviteSubmit,
     handleRevokeInvite,
     handleWorkspaceSubmit,
+    handleWorkspaceSettingsSubmit,
+    handleWorkspaceStatusChange,
   } = useAdminActions({
     canManageUsers,
     canCreateWorkspaces,
@@ -315,12 +321,30 @@ export default function App() {
   }, [activeView, hasLoadedNotifications, refreshAppData, session]);
 
   useEffect(() => {
-    if (!session || activeView !== "admin" || !canManageUsers || (hasLoadedAdminUsers && hasLoadedAdminInvites)) {
+    if (
+      !session ||
+      activeView !== "admin" ||
+      ((!canManageUsers || (hasLoadedAdminUsers && hasLoadedAdminInvites)) &&
+        (!canCreateWorkspaces || hasLoadedAdminWorkspaces))
+    ) {
       return;
     }
 
-    void refreshAppData(session, { adminUsers: true, adminInvites: true });
-  }, [activeView, canManageUsers, hasLoadedAdminInvites, hasLoadedAdminUsers, refreshAppData, session]);
+    void refreshAppData(session, {
+      adminUsers: canManageUsers,
+      adminInvites: canManageUsers,
+      adminWorkspaces: canCreateWorkspaces,
+    });
+  }, [
+    activeView,
+    canCreateWorkspaces,
+    canManageUsers,
+    hasLoadedAdminInvites,
+    hasLoadedAdminUsers,
+    hasLoadedAdminWorkspaces,
+    refreshAppData,
+    session,
+  ]);
 
   useEffect(() => {
     if (!session || !isModalOpen || hasLoadedWorkspaceMembers) {
@@ -502,6 +526,7 @@ export default function App() {
           {activeView === "admin" && canManageUsers && (
             <AdminView
               adminUsers={adminUsers}
+              adminWorkspaces={adminWorkspaces}
               adminInvites={adminInvites}
               adminForm={adminForm}
               inviteForm={inviteForm}
@@ -517,6 +542,8 @@ export default function App() {
               workspaceForm={workspaceForm}
               isWorkspaceSaving={isWorkspaceSaving}
               createdWorkspace={createdWorkspace}
+              updatingWorkspaceId={updatingWorkspaceId}
+              togglingWorkspaceId={togglingWorkspaceId}
               roleLabels={ROLE_LABELS}
               todayBadge={todayBadge}
               workspaceName={session.workspace.name}
@@ -531,6 +558,8 @@ export default function App() {
               onSubmit={(event) => void handleAdminSubmit(event)}
               onInviteSubmit={(event) => void handleInviteSubmit(event)}
               onWorkspaceSubmit={(event) => void handleWorkspaceSubmit(event)}
+              onWorkspaceSettingsSubmit={(workspaceId, payload) => void handleWorkspaceSettingsSubmit(workspaceId, payload)}
+              onWorkspaceStatusChange={(workspaceId, isActive) => void handleWorkspaceStatusChange(workspaceId, isActive)}
               onRevokeInvite={(inviteId) => void handleRevokeInvite(inviteId)}
             />
           )}

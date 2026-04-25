@@ -18,15 +18,21 @@ import type {
   AdminUserPayload,
   CreateWorkspaceInvitePayload,
   CreateWorkspacePayload,
+  UpdateWorkspacePayload,
+  UpdateWorkspaceStatusPayload,
 } from "../../../../../src/shared/api-types.js";
 import { sendWorkspaceInviteEmail } from "../services/email-service.js";
 import {
   createWorkspaceWithOwner,
+  createWorkspaceMembership,
+  fetchWorkspaceForAdmin,
+  toApiAdminWorkspace,
+  updateWorkspaceMembershipRole,
+  updateWorkspaceSettings,
   validateAdminUserInput,
   validateCreateWorkspaceInput,
+  validateUpdateWorkspaceInput,
   workspaceRoleMap,
-  createWorkspaceMembership,
-  updateWorkspaceMembershipRole,
 } from "../services/workspace-service.js";
 
 export function createAdminRouter() {
@@ -42,21 +48,14 @@ export function createAdminRouter() {
     return `${protocol}://${request.get("host")}`;
   }
 
-  function toApiAdminWorkspace(workspace: { id: string; name: string; slug: string; createdAt: Date; updatedAt: Date }, owner: {
-    id: string;
-    name: string;
-    email: string;
-  }) {
-    return {
-      id: workspace.id,
-      name: workspace.name,
-      slug: workspace.slug,
-      ownerUserId: owner.id,
-      ownerName: owner.name,
-      ownerEmail: owner.email,
-      createdAt: workspace.createdAt.toISOString(),
-      updatedAt: workspace.updatedAt.toISOString(),
-    };
+  function requireGodMode(request: express.Request, response: express.Response) {
+    const auth = authOf(request);
+    if (!auth.user.isGodMode) {
+      response.status(403).json({ error: "Only god mode admins can manage workspaces." });
+      return null;
+    }
+
+    return auth;
   }
 
   router.get(API_ROUTES.admin.users.replace("/api/admin", ""), async (request, response) => {
@@ -201,10 +200,8 @@ export function createAdminRouter() {
   });
 
   router.post(API_ROUTES.admin.workspaces.replace("/api/admin", ""), async (request, response) => {
-    const auth = authOf(request);
-
-    if (!auth.user.isGodMode) {
-      response.status(403).json({ error: "Only god mode admins can create workspaces." });
+    const auth = requireGodMode(request, response);
+    if (!auth) {
       return;
     }
 
@@ -219,12 +216,47 @@ export function createAdminRouter() {
 
     try {
       const result = await prisma.$transaction((tx) => createWorkspaceWithOwner(tx, input));
-      response.status(201).json(toApiAdminWorkspace(result.workspace, result.owner));
+      const workspace = await fetchWorkspaceForAdmin(prisma, result.workspace.id);
+      response.status(201).json(workspace ? toApiAdminWorkspace(workspace) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create workspace.";
       const status = message.includes("God mode users") ? 409 : 400;
       response.status(status).json({ error: message });
     }
+  });
+
+  router.get(API_ROUTES.admin.workspaces.replace("/api/admin", ""), async (request, response) => {
+    const auth = requireGodMode(request, response);
+    if (!auth) {
+      return;
+    }
+
+    const workspaces = await prisma.workspace.findMany({
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        memberships: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+        },
+      },
+      orderBy: [{ createdAt: "asc" }],
+    });
+
+    response.json(workspaces.map((workspace) => toApiAdminWorkspace(workspace)));
   });
 
   router.delete("/invites/:id", async (request, response) => {
@@ -357,6 +389,77 @@ export function createAdminRouter() {
     });
 
     response.json({ password });
+  });
+
+  router.put("/workspaces/:id", async (request, response) => {
+    const auth = requireGodMode(request, response);
+    if (!auth) {
+      return;
+    }
+
+    const input = request.body as Partial<UpdateWorkspacePayload>;
+
+    if (!validateUpdateWorkspaceInput(input)) {
+      response.status(400).json({ error: "Workspace name, owner, and workspace settings are required." });
+      return;
+    }
+
+    try {
+      const workspace = await prisma.$transaction((tx) => updateWorkspaceSettings(tx, request.params.id, input));
+      response.json(toApiAdminWorkspace(workspace));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not update workspace.";
+      const status = message.includes("not found") ? 404 : 400;
+      response.status(status).json({ error: message });
+    }
+  });
+
+  router.patch("/workspaces/:id/status", async (request, response) => {
+    const auth = requireGodMode(request, response);
+    if (!auth) {
+      return;
+    }
+
+    const input = request.body as Partial<UpdateWorkspaceStatusPayload>;
+
+    if (typeof input.isActive !== "boolean") {
+      response.status(400).json({ error: "isActive is required." });
+      return;
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: request.params.id },
+      select: { id: true, deactivatedAt: true },
+    });
+
+    if (!workspace) {
+      response.status(404).json({ error: "Workspace not found." });
+      return;
+    }
+
+    if (!input.isActive) {
+      const remainingActiveCount = await prisma.workspace.count({
+        where: {
+          deactivatedAt: null,
+          id: { not: workspace.id },
+        },
+      });
+
+      if (remainingActiveCount === 0) {
+        response.status(400).json({ error: "You cannot deactivate the last active workspace." });
+        return;
+      }
+    }
+
+    await prisma.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        deactivatedAt: input.isActive ? null : new Date(),
+      },
+    });
+
+    const updatedWorkspace = await fetchWorkspaceForAdmin(prisma, workspace.id);
+    response.json(updatedWorkspace ? toApiAdminWorkspace(updatedWorkspace) : null);
   });
 
   return router;

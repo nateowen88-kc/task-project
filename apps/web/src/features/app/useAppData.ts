@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  AdminWorkspace,
   AdminUser,
   AgendaResponse,
   AuthSession,
@@ -9,6 +10,7 @@ import {
   WorkspaceInvite,
   WorkspaceMember,
   fetchAdminUsers,
+  fetchAdminWorkspaces,
   fetchCapturedItems,
   fetchNotifications,
   fetchSession,
@@ -50,6 +52,7 @@ type RefreshTargets = {
   agenda?: boolean;
   adminUsers?: boolean;
   adminInvites?: boolean;
+  adminWorkspaces?: boolean;
 };
 
 const fullRefreshTargets: Required<RefreshTargets> = {
@@ -60,6 +63,7 @@ const fullRefreshTargets: Required<RefreshTargets> = {
   agenda: true,
   adminUsers: true,
   adminInvites: true,
+  adminWorkspaces: true,
 };
 
 function normalizeRefreshTargets(targets?: RefreshTargets) {
@@ -73,6 +77,8 @@ export function useAppData({ onError }: UseAppDataOptions) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [hasLoadedAdminUsers, setHasLoadedAdminUsers] = useState(false);
+  const [adminWorkspaces, setAdminWorkspaces] = useState<AdminWorkspace[]>([]);
+  const [hasLoadedAdminWorkspaces, setHasLoadedAdminWorkspaces] = useState(false);
   const [adminInvites, setAdminInvites] = useState<WorkspaceInvite[]>([]);
   const [hasLoadedAdminInvites, setHasLoadedAdminInvites] = useState(false);
   const [workspaceMembers, setWorkspaceMembers] = useState<WorkspaceMember[]>([]);
@@ -106,6 +112,8 @@ export function useAppData({ onError }: UseAppDataOptions) {
     setHasLoadedCapturedItems(false);
     setAdminUsers([]);
     setHasLoadedAdminUsers(false);
+    setAdminWorkspaces([]);
+    setHasLoadedAdminWorkspaces(false);
     setAdminInvites([]);
     setHasLoadedAdminInvites(false);
   }, []);
@@ -125,6 +133,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
         ...(targets.notifications ? [fetchNotifications()] : []),
         ...(targets.capturedItems ? [fetchCapturedItems()] : []),
         ...(targets.adminInvites && effectiveSession.permissions.canManageUsers ? [fetchWorkspaceInvites()] : []),
+        ...(targets.adminWorkspaces && effectiveSession.permissions.canCreateWorkspaces ? [fetchAdminWorkspaces()] : []),
       ];
       const resultKeys: Array<keyof RefreshTargets> = [];
 
@@ -146,6 +155,10 @@ export function useAppData({ onError }: UseAppDataOptions) {
 
       if (targets.adminInvites && effectiveSession.permissions.canManageUsers) {
         resultKeys.push("adminInvites");
+      }
+
+      if (targets.adminWorkspaces && effectiveSession.permissions.canCreateWorkspaces) {
+        resultKeys.push("adminWorkspaces");
       }
 
       if (targets.agenda && effectiveSession.workspace.id !== ALL_WORKSPACES_ID) {
@@ -193,6 +206,10 @@ export function useAppData({ onError }: UseAppDataOptions) {
             setAdminInvites((result as WorkspaceInvite[]) ?? []);
             setHasLoadedAdminInvites(true);
             break;
+          case "adminWorkspaces":
+            setAdminWorkspaces((result as AdminWorkspace[]) ?? []);
+            setHasLoadedAdminWorkspaces(true);
+            break;
         }
       });
     },
@@ -212,6 +229,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
       await refreshAppData(persistedAllWorkspaces, {
         tasks: true,
         adminUsers: persistedAllWorkspaces.permissions.canManageUsers,
+        adminWorkspaces: persistedAllWorkspaces.permissions.canCreateWorkspaces,
         adminInvites: false,
         workspaceMembers: false,
         notifications: false,
@@ -249,6 +267,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
             tasks: true,
             adminUsers: nextSession.permissions.canManageUsers,
             adminInvites: nextSession.permissions.canManageUsers,
+            adminWorkspaces: nextSession.permissions.canCreateWorkspaces,
             workspaceMembers: false,
             notifications: false,
             capturedItems: false,
@@ -265,6 +284,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
         await refreshAppData(nextSession, {
           tasks: true,
           adminUsers: nextSession.permissions.canManageUsers,
+          adminWorkspaces: nextSession.permissions.canCreateWorkspaces,
           adminInvites: false,
           workspaceMembers: false,
           notifications: false,
@@ -302,6 +322,8 @@ export function useAppData({ onError }: UseAppDataOptions) {
     session,
     adminUsers,
     hasLoadedAdminUsers,
+    adminWorkspaces,
+    hasLoadedAdminWorkspaces,
     adminInvites,
     hasLoadedAdminInvites,
     workspaceMembers,

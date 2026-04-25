@@ -4,6 +4,7 @@ import {
   authOf,
   canAssignTasks,
   getTaskPermissions,
+  isWorkspaceAdmin,
   personalTaskWhere,
   requireAuth,
   taskScopedIdWhere,
@@ -158,6 +159,11 @@ export function createTasksRouter() {
 
     if (!canAssignTasks(auth) && assigneeId && assigneeId !== auth.user.id) {
       response.status(403).json({ error: "You can only assign tasks to yourself." });
+      return;
+    }
+
+    if (!auth.workspace.allowMemberTaskCreation && !isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can create tasks in this workspace." });
       return;
     }
 

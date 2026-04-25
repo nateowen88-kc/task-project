@@ -16,9 +16,13 @@ import { sendWorkspaceInviteEmail } from "../services/email-service.js";
 import {
   createWorkspaceWithOwner,
   createWorkspaceMembership,
+  fetchWorkspaceForAdmin,
+  toApiAdminWorkspace,
   updateWorkspaceMembershipRole,
+  updateWorkspaceSettings,
   validateAdminUserInput,
   validateCreateWorkspaceInput,
+  validateUpdateWorkspaceInput,
   workspaceRoleMap,
 } from "../services/workspace-service.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
@@ -26,6 +30,8 @@ import type {
   AdminUserPayload,
   CreateWorkspaceInvitePayload,
   CreateWorkspacePayload,
+  UpdateWorkspacePayload,
+  UpdateWorkspaceStatusPayload,
 } from "../../../../../src/shared/api-types.js";
 import {
   getOrigin,
@@ -61,23 +67,6 @@ function getInviteBaseUrl(request: NativeRequest) {
   return `${getProtocol(request)}://${request.headers.host ?? "localhost"}`;
 }
 
-function toApiAdminWorkspace(workspace: { id: string; name: string; slug: string; createdAt: Date; updatedAt: Date }, owner: {
-  id: string;
-  name: string;
-  email: string;
-}) {
-  return {
-    id: workspace.id,
-    name: workspace.name,
-    slug: workspace.slug,
-    ownerUserId: owner.id,
-    ownerName: owner.name,
-    ownerEmail: owner.email,
-    createdAt: workspace.createdAt.toISOString(),
-    updatedAt: workspace.updatedAt.toISOString(),
-  };
-}
-
 export default async function adminHandler(request: NativeRequest, response: NativeResponse) {
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
@@ -96,6 +85,15 @@ export default async function adminHandler(request: NativeRequest, response: Nat
     sendJson(response, 403, { error: "Admin access required." });
     return;
   }
+
+  const requireGodMode = () => {
+    if (!auth.user.isGodMode) {
+      sendJson(response, 403, { error: "Only god mode admins can manage workspaces." });
+      return false;
+    }
+
+    return true;
+  };
 
   if (method === "GET" && pathname === API_ROUTES.admin.users) {
     const members = await prisma.workspaceMember.findMany({
@@ -240,8 +238,7 @@ export default async function adminHandler(request: NativeRequest, response: Nat
   }
 
   if (method === "POST" && pathname === API_ROUTES.admin.workspaces) {
-    if (!auth.user.isGodMode) {
-      sendJson(response, 403, { error: "Only god mode admins can create workspaces." });
+    if (!requireGodMode()) {
       return;
     }
 
@@ -256,12 +253,47 @@ export default async function adminHandler(request: NativeRequest, response: Nat
 
     try {
       const result = await prisma.$transaction((tx) => createWorkspaceWithOwner(tx, input));
-      sendJson(response, 201, toApiAdminWorkspace(result.workspace, result.owner));
+      const workspace = await fetchWorkspaceForAdmin(prisma, result.workspace.id);
+      sendJson(response, 201, workspace ? toApiAdminWorkspace(workspace) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create workspace.";
       const status = message.includes("God mode users") ? 409 : 400;
       sendJson(response, status, { error: message });
     }
+    return;
+  }
+
+  if (method === "GET" && pathname === API_ROUTES.admin.workspaces) {
+    if (!requireGodMode()) {
+      return;
+    }
+
+    const workspaces = await prisma.workspace.findMany({
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        memberships: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+        },
+      },
+      orderBy: [{ createdAt: "asc" }],
+    });
+
+    sendJson(response, 200, workspaces.map((workspace) => toApiAdminWorkspace(workspace)));
     return;
   }
 
@@ -390,6 +422,79 @@ export default async function adminHandler(request: NativeRequest, response: Nat
     });
 
     sendJson(response, 200, { password });
+    return;
+  }
+
+  const workspaceMatch = matchPath(pathname, "/api/admin/workspaces/:id");
+  if (method === "PUT" && workspaceMatch) {
+    if (!requireGodMode()) {
+      return;
+    }
+
+    const input = (await readJsonBody<Partial<UpdateWorkspacePayload>>(request)) ?? {};
+
+    if (!validateUpdateWorkspaceInput(input)) {
+      sendJson(response, 400, { error: "Workspace name, owner, and workspace settings are required." });
+      return;
+    }
+
+    try {
+      const workspace = await prisma.$transaction((tx) => updateWorkspaceSettings(tx, workspaceMatch.id, input));
+      sendJson(response, 200, toApiAdminWorkspace(workspace));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Could not update workspace.";
+      const status = message.includes("not found") ? 404 : 400;
+      sendJson(response, status, { error: message });
+    }
+    return;
+  }
+
+  const workspaceStatusMatch = matchPath(pathname, "/api/admin/workspaces/:id/status");
+  if (method === "PATCH" && workspaceStatusMatch) {
+    if (!requireGodMode()) {
+      return;
+    }
+
+    const input = (await readJsonBody<Partial<UpdateWorkspaceStatusPayload>>(request)) ?? {};
+
+    if (typeof input.isActive !== "boolean") {
+      sendJson(response, 400, { error: "isActive is required." });
+      return;
+    }
+
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: workspaceStatusMatch.id },
+      select: { id: true, deactivatedAt: true },
+    });
+
+    if (!workspace) {
+      sendJson(response, 404, { error: "Workspace not found." });
+      return;
+    }
+
+    if (!input.isActive) {
+      const remainingActiveCount = await prisma.workspace.count({
+        where: {
+          deactivatedAt: null,
+          id: { not: workspace.id },
+        },
+      });
+
+      if (remainingActiveCount === 0) {
+        sendJson(response, 400, { error: "You cannot deactivate the last active workspace." });
+        return;
+      }
+    }
+
+    await prisma.workspace.update({
+      where: { id: workspace.id },
+      data: {
+        deactivatedAt: input.isActive ? null : new Date(),
+      },
+    });
+
+    const updatedWorkspace = await fetchWorkspaceForAdmin(prisma, workspace.id);
+    sendJson(response, 200, updatedWorkspace ? toApiAdminWorkspace(updatedWorkspace) : null);
     return;
   }
 

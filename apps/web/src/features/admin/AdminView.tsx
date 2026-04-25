@@ -1,12 +1,19 @@
+import { useEffect, useState } from "react";
 import { AdminUser, AdminWorkspace, WorkspaceInvite, WorkspaceInviteRole, WorkspaceRole } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
-import type { AdminFormState, InviteFormState, WorkspaceFormState } from "./useAdminActions";
+import type {
+  AdminFormState,
+  InviteFormState,
+  WorkspaceFormState,
+  WorkspaceSettingsFormState,
+} from "./useAdminActions";
 
 type AdminViewProps = {
   adminUsers: AdminUser[];
+  adminWorkspaces: AdminWorkspace[];
   adminInvites: WorkspaceInvite[];
   adminForm: AdminFormState;
   inviteForm: InviteFormState;
@@ -22,6 +29,8 @@ type AdminViewProps = {
   workspaceForm: WorkspaceFormState;
   isWorkspaceSaving: boolean;
   createdWorkspace: AdminWorkspace | null;
+  updatingWorkspaceId: string | null;
+  togglingWorkspaceId: string | null;
   roleLabels: Record<WorkspaceRole, string>;
   todayBadge: { month: string; day: number; weekday: string };
   workspaceName: string;
@@ -36,11 +45,22 @@ type AdminViewProps = {
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   onInviteSubmit: React.FormEventHandler<HTMLFormElement>;
   onWorkspaceSubmit: React.FormEventHandler<HTMLFormElement>;
+  onWorkspaceSettingsSubmit: (workspaceId: string, payload: WorkspaceSettingsFormState) => void;
+  onWorkspaceStatusChange: (workspaceId: string, isActive: boolean) => void;
   onRevokeInvite: (inviteId: string) => void;
 };
 
+function buildWorkspaceDraft(workspace: AdminWorkspace): WorkspaceSettingsFormState {
+  return {
+    name: workspace.name,
+    ownerUserId: workspace.ownerUserId,
+    allowMemberTaskCreation: workspace.allowMemberTaskCreation,
+  };
+}
+
 export function AdminView({
   adminUsers,
+  adminWorkspaces,
   adminInvites,
   adminForm,
   inviteForm,
@@ -56,6 +76,8 @@ export function AdminView({
   workspaceForm,
   isWorkspaceSaving,
   createdWorkspace,
+  updatingWorkspaceId,
+  togglingWorkspaceId,
   roleLabels,
   todayBadge,
   workspaceName,
@@ -70,8 +92,24 @@ export function AdminView({
   onSubmit,
   onInviteSubmit,
   onWorkspaceSubmit,
+  onWorkspaceSettingsSubmit,
+  onWorkspaceStatusChange,
   onRevokeInvite,
 }: AdminViewProps) {
+  const [workspaceDrafts, setWorkspaceDrafts] = useState<Record<string, WorkspaceSettingsFormState>>({});
+
+  useEffect(() => {
+    setWorkspaceDrafts((current) => {
+      const next: Record<string, WorkspaceSettingsFormState> = {};
+
+      adminWorkspaces.forEach((workspace) => {
+        next[workspace.id] = current[workspace.id] ?? buildWorkspaceDraft(workspace);
+      });
+
+      return next;
+    });
+  }, [adminWorkspaces]);
+
   return (
     <section className="panel admin-panel">
       <SectionHeader
@@ -292,6 +330,140 @@ export function AdminView({
             )}
           </div>
         </section>
+
+        {canCreateWorkspaces && (
+          <section className="admin-form-panel">
+            <div className="section-heading">
+              <SectionHeaderLead>
+                <p className="eyebrow">Workspace controls</p>
+                <h2>Manage workspaces</h2>
+              </SectionHeaderLead>
+            </div>
+
+            <div className="task-detail-list">
+              {adminWorkspaces.length ? (
+                adminWorkspaces.map((workspace) => {
+                  const draft = workspaceDrafts[workspace.id] ?? buildWorkspaceDraft(workspace);
+                  const isActive = workspace.deactivatedAt === null;
+
+                  return (
+                    <article key={workspace.id} className="detail-card">
+                      <div className="detail-card-top">
+                        <strong>{workspace.name}</strong>
+                        <span>{isActive ? "active" : "deactivated"}</span>
+                      </div>
+
+                      <p>
+                        {workspace.slug} · {workspace.memberCount} member{workspace.memberCount === 1 ? "" : "s"}
+                      </p>
+
+                      <div className="task-form">
+                        <label>
+                          Workspace name
+                          <input
+                            value={draft.name}
+                            onChange={(event) =>
+                              setWorkspaceDrafts((current) => ({
+                                ...current,
+                                [workspace.id]: {
+                                  ...draft,
+                                  name: event.target.value,
+                                },
+                              }))
+                            }
+                            required
+                          />
+                        </label>
+
+                        <label>
+                          Owner
+                          <AppSelect
+                            ariaLabel={`Owner for ${workspace.name}`}
+                            className="app-select"
+                            menuClassName="app-select-menu"
+                            value={draft.ownerUserId}
+                            options={workspace.members.map((member) => ({
+                              value: member.userId,
+                              label: `${member.name} (${roleLabels[member.role]})`,
+                            }))}
+                            onChange={(nextOwnerUserId) =>
+                              setWorkspaceDrafts((current) => ({
+                                ...current,
+                                [workspace.id]: {
+                                  ...draft,
+                                  ownerUserId: nextOwnerUserId,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={draft.allowMemberTaskCreation}
+                            onChange={(event) =>
+                              setWorkspaceDrafts((current) => ({
+                                ...current,
+                                [workspace.id]: {
+                                  ...draft,
+                                  allowMemberTaskCreation: event.target.checked,
+                                },
+                              }))
+                            }
+                          />
+                          Members can create tasks
+                        </label>
+
+                        <div className="admin-user-meta">
+                          <span>Owner: {workspace.ownerName || "Unknown"} ({workspace.ownerEmail || "No email"})</span>
+                          <span>Updated {formatReceivedLabel(workspace.updatedAt)}</span>
+                        </div>
+
+                        <div className="admin-form-actions">
+                          <button
+                            className="ghost-button"
+                            type="button"
+                            onClick={() =>
+                              setWorkspaceDrafts((current) => ({
+                                ...current,
+                                [workspace.id]: buildWorkspaceDraft(workspace),
+                              }))
+                            }
+                          >
+                            Reset
+                          </button>
+                          <button
+                            className="ghost-button"
+                            type="button"
+                            disabled={togglingWorkspaceId === workspace.id}
+                            onClick={() => onWorkspaceStatusChange(workspace.id, !isActive)}
+                          >
+                            {togglingWorkspaceId === workspace.id
+                              ? "Saving..."
+                              : isActive
+                                ? "Deactivate"
+                                : "Reactivate"}
+                          </button>
+                          <button
+                            className="primary-button"
+                            type="button"
+                            disabled={updatingWorkspaceId === workspace.id}
+                            onClick={() => onWorkspaceSettingsSubmit(workspace.id, draft)}
+                          >
+                            {updatingWorkspaceId === workspace.id ? "Saving..." : "Save workspace"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="detail-empty">No workspaces available.</div>
+              )}
+            </div>
+          </section>
+        )}
 
         {canCreateWorkspaces && (
           <section className="admin-form-panel">

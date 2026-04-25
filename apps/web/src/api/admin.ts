@@ -1,10 +1,11 @@
-import { request } from "./client";
+import { request, resolveRequestInput } from "./client";
 import type {
   AdminWorkspace,
   AdminUser,
   AdminUserPayload,
   CreateWorkspacePayload,
   CreateWorkspaceInvitePayload,
+  UpdateWorkspacePayload,
   WorkspaceInvite,
   WorkspaceMember,
 } from "./types";
@@ -20,6 +21,10 @@ function fetchWorkspaceMembers() {
 
 function fetchWorkspaceInvites() {
   return request<WorkspaceInvite[]>(API_ROUTES.admin.invites);
+}
+
+function fetchAdminWorkspaces() {
+  return request<AdminWorkspace[]>(API_ROUTES.admin.workspaces);
 }
 
 function createAdminUser(payload: AdminUserPayload) {
@@ -50,6 +55,20 @@ function createWorkspace(payload: CreateWorkspacePayload) {
   });
 }
 
+function updateWorkspace(id: string, payload: UpdateWorkspacePayload) {
+  return request<AdminWorkspace>(API_ROUTES.admin.workspace(id), {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+function updateWorkspaceStatus(id: string, isActive: boolean) {
+  return request<AdminWorkspace>(API_ROUTES.admin.workspaceStatus(id), {
+    method: "PATCH",
+    body: JSON.stringify({ isActive }),
+  });
+}
+
 function revokeWorkspaceInvite(id: string) {
   return request<null>(API_ROUTES.admin.invite(id), {
     method: "DELETE",
@@ -57,7 +76,7 @@ function revokeWorkspaceInvite(id: string) {
 }
 
 async function resetAdminUserPassword(userId: string) {
-  const response = await fetch(API_ROUTES.admin.resetPassword(userId), {
+  const response = await fetch(resolveRequestInput(API_ROUTES.admin.resetPassword(userId)), {
     method: "POST",
     credentials: "include",
   });
@@ -74,10 +93,13 @@ export {
   createAdminUser,
   createWorkspace,
   createWorkspaceInvite,
+  fetchAdminWorkspaces,
   fetchAdminUsers,
   fetchWorkspaceInvites,
   fetchWorkspaceMembers,
   revokeWorkspaceInvite,
   resetAdminUserPassword,
+  updateWorkspace,
+  updateWorkspaceStatus,
   updateAdminUser,
 };

@@ -131,6 +131,7 @@ export type ApiAuthSession = {
   permissions: {
     canManageUsers: boolean;
     canCreateUsers: boolean;
+    canCreateWorkspaces: boolean;
     canPromoteToOwner: boolean;
     canResetPasswords: boolean;
     canAssignTasks: boolean;

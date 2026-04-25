@@ -3,6 +3,7 @@ import {
   canAssignTasks,
   getAuthContext,
   getTaskPermissions,
+  isWorkspaceAdmin,
   personalTaskWhere,
   taskScopedIdWhere,
   workspaceScopedIdWhere,
@@ -195,6 +196,11 @@ export default async function taskHandler(request: NativeRequest, response: Nati
 
     if (!canAssignTasks(auth) && assigneeId && assigneeId !== auth.user.id) {
       sendJson(response, 403, { error: "You can only assign tasks to yourself." });
+      return;
+    }
+
+    if (!auth.workspace.allowMemberTaskCreation && !isWorkspaceAdmin(auth)) {
+      sendJson(response, 403, { error: "Only workspace admins can create tasks in this workspace." });
       return;
     }
 

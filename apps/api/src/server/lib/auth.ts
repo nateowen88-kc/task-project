@@ -6,7 +6,15 @@ import { prisma } from "./db.js";
 import { addDays } from "./dates.js";
 import type { AuthSession } from "../../../../../src/shared/api-types.js";
 import {
-  type ApiTask,
+  getTaskPermissions,
+  getWorkspaceRole,
+  hasPersonalTaskWorkspaceView,
+  isWorkspaceAdmin,
+  isWorkspaceOwner,
+  personalTaskWhere,
+  resolveWorkspaceForUser,
+} from "./auth-rules.js";
+import {
   type ApiWorkspace,
   reverseWorkspaceRoleMap,
 } from "./serializers.js";
@@ -56,42 +64,6 @@ function getHeaderValue(request: express.Request | { headers?: Record<string, st
   return value ?? null;
 }
 
-function resolveWorkspaceForUser(user: UserRecord) {
-  if (user.isGodMode && user.defaultWorkspace) {
-    return user.defaultWorkspace;
-  }
-
-  if (
-    user.defaultWorkspace &&
-    user.memberships.some((item) => item.workspaceId === user.defaultWorkspaceId)
-  ) {
-    return user.defaultWorkspace;
-  }
-
-  return user.memberships[0]!.workspace;
-}
-
-function getWorkspaceMembership(auth: AuthContext, workspaceId = auth.workspace.id) {
-  return auth.memberships.find((item) => item.workspaceId === workspaceId) ?? null;
-}
-
-export function getWorkspaceRole(auth: AuthContext, workspaceId = auth.workspace.id) {
-  if (auth.user.isGodMode) {
-    return WorkspaceRole.OWNER;
-  }
-
-  return getWorkspaceMembership(auth, workspaceId)?.role ?? null;
-}
-
-export function isWorkspaceOwner(auth: AuthContext, workspaceId = auth.workspace.id) {
-  return getWorkspaceRole(auth, workspaceId) === WorkspaceRole.OWNER;
-}
-
-export function isWorkspaceAdmin(auth: AuthContext, workspaceId = auth.workspace.id) {
-  const role = getWorkspaceRole(auth, workspaceId);
-  return role === WorkspaceRole.OWNER || role === WorkspaceRole.ADMIN;
-}
-
 export function canResetPasswords(auth: AuthContext) {
   return auth.user.isGodMode || isWorkspaceOwner(auth);
 }
@@ -111,30 +83,6 @@ export function getAppPermissions(auth: AuthContext): AuthSession["permissions"]
     canEditAllTasks: isWorkspaceAdmin(auth),
     canDeleteAllTasks: isWorkspaceAdmin(auth),
     canArchiveAllTasks: isWorkspaceAdmin(auth),
-  };
-}
-
-type TaskPermissionTarget = {
-  createdById: string | null;
-  assigneeId: string | null;
-};
-
-export function getTaskPermissions(
-  auth: AuthContext,
-  task: TaskPermissionTarget,
-): ApiTask["permissions"] {
-  const isManager = isWorkspaceAdmin(auth);
-  const isOwner = task.createdById === auth.user.id;
-  const isAssignee = task.assigneeId === auth.user.id;
-  const canActOnTask = isManager || isOwner || isAssignee;
-
-  return {
-    canEdit: canActOnTask,
-    canChangeStatus: canActOnTask,
-    canComment: canActOnTask,
-    canArchive: canActOnTask,
-    canDelete: canActOnTask,
-    canReassign: isManager,
   };
 }
 
@@ -263,6 +211,9 @@ export function clearSessionCookie() {
 export async function toApiSession(user: UserRecord, workspaceId: string): Promise<AuthSession> {
   if (user.isGodMode) {
     const workspaces = await prisma.workspace.findMany({
+      where: {
+        deactivatedAt: null,
+      },
       orderBy: [{ createdAt: "asc" }],
     });
 
@@ -306,8 +257,12 @@ export async function toApiSession(user: UserRecord, workspaceId: string): Promi
   }
 
   const membership = user.memberships.find((item) => item.workspaceId === workspaceId) ?? user.memberships[0];
+  const activeMemberships = user.memberships.filter((item) => !item.workspace.deactivatedAt);
+  const availableMemberships = activeMemberships.length > 0 ? activeMemberships : user.memberships;
+  const selectedMembership =
+    availableMemberships.find((item) => item.workspaceId === workspaceId) ?? availableMemberships[0];
 
-  if (!membership) {
+  if (!selectedMembership) {
     throw new Error("User is not a member of any workspace.");
   }
 
@@ -318,18 +273,18 @@ export async function toApiSession(user: UserRecord, workspaceId: string): Promi
       email: user.email,
       isGodMode: user.isGodMode,
     },
-    workspace: toApiWorkspace(membership),
-    workspaces: user.memberships.map((item) => toApiWorkspace(item)),
+    workspace: toApiWorkspace(selectedMembership),
+    workspaces: availableMemberships.map((item) => toApiWorkspace(item)),
     permissions: {
-      canManageUsers: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
-      canCreateUsers: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
+      canManageUsers: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
+      canCreateUsers: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
       canCreateWorkspaces: false,
-      canPromoteToOwner: membership.role === WorkspaceRole.OWNER,
-      canResetPasswords: membership.role === WorkspaceRole.OWNER,
-      canAssignTasks: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
-      canEditAllTasks: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
-      canDeleteAllTasks: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
-      canArchiveAllTasks: membership.role === WorkspaceRole.OWNER || membership.role === WorkspaceRole.ADMIN,
+      canPromoteToOwner: selectedMembership.role === WorkspaceRole.OWNER,
+      canResetPasswords: selectedMembership.role === WorkspaceRole.OWNER,
+      canAssignTasks: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
+      canEditAllTasks: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
+      canDeleteAllTasks: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
+      canArchiveAllTasks: selectedMembership.role === WorkspaceRole.OWNER || selectedMembership.role === WorkspaceRole.ADMIN,
     },
   };
 }
@@ -352,10 +307,17 @@ export async function buildAuthContext(userId: string, allWorkspaces = false): P
     return null;
   }
 
+  const workspace = resolveWorkspaceForUser(user);
+  const memberships = user.memberships.filter((item) => !item.workspace.deactivatedAt);
+
+  if (!workspace || memberships.length === 0) {
+    return null;
+  }
+
   return {
     user,
-    workspace: resolveWorkspaceForUser(user),
-    memberships: user.memberships,
+    workspace,
+    memberships,
     allWorkspaces,
   };
 }
@@ -395,10 +357,17 @@ export async function getAuthContext(request: express.Request) {
     return null;
   }
 
+  const workspace = resolveWorkspaceForUser(baseUser);
+  const memberships = baseUser.memberships.filter((item) => !item.workspace.deactivatedAt);
+
+  if (!workspace || memberships.length === 0) {
+    return null;
+  }
+
   return {
     user: baseUser,
-    workspace: resolveWorkspaceForUser(baseUser),
-    memberships: baseUser.memberships,
+    workspace,
+    memberships,
     allWorkspaces: shouldUseAllWorkspacesScope(request, baseUser),
   };
 }
@@ -477,20 +446,6 @@ export function workspaceWhere(auth: AuthContext) {
   return auth.allWorkspaces ? {} : { workspaceId: auth.workspace.id };
 }
 
-export function hasPersonalTaskWorkspaceView(auth: AuthContext) {
-  return !auth.user.isGodMode && auth.memberships.length > 1 && !isWorkspaceAdmin(auth);
-}
-
-export function personalTaskWhere(auth: AuthContext) {
-  if (!hasPersonalTaskWorkspaceView(auth)) {
-    return {};
-  }
-
-  return {
-    OR: [{ createdById: auth.user.id }, { assigneeId: auth.user.id }],
-  };
-}
-
 export function workspaceWhereForUser(auth: AuthContext, userId: string) {
   return auth.allWorkspaces ? { userId } : { workspaceId: auth.workspace.id, userId };
 }
@@ -506,6 +461,16 @@ export function taskScopedIdWhere(auth: AuthContext, id: string) {
 export function canManageUsers(auth: AuthContext) {
   return auth.user.isGodMode || isWorkspaceAdmin(auth);
 }
+
+export {
+  getTaskPermissions,
+  getWorkspaceRole,
+  hasPersonalTaskWorkspaceView,
+  isWorkspaceAdmin,
+  isWorkspaceOwner,
+  personalTaskWhere,
+  resolveWorkspaceForUser,
+};
 
 export async function requireWorkspaceAdmin(
   request: express.Request,

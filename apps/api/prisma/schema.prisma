@@ -92,6 +92,8 @@ model Workspace {
   name          String
   slug          String            @unique
   ownerId       String?
+  deactivatedAt DateTime?
+  allowMemberTaskCreation Boolean @default(true)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @default(now()) @updatedAt
   owner         User?             @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: SetNull)

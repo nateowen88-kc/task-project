@@ -17,6 +17,8 @@ export const API_ROUTES = {
     invites: "/api/admin/invites",
     invite: (id: string) => `/api/admin/invites/${id}`,
     workspaces: "/api/admin/workspaces",
+    workspace: (id: string) => `/api/admin/workspaces/${id}`,
+    workspaceStatus: (id: string) => `/api/admin/workspaces/${id}/status`,
   },
   agenda: {
     today: "/api/today",

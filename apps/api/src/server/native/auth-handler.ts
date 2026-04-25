@@ -149,13 +149,20 @@ export default async function authHandler(request: NativeRequest, response: Nati
     const targetWorkspaceId = workspaceId.trim();
 
     if (auth.user.isGodMode) {
-      const workspace = await prisma.workspace.findUnique({ where: { id: targetWorkspaceId } });
+      const workspace = await prisma.workspace.findFirst({
+        where: {
+          id: targetWorkspaceId,
+          deactivatedAt: null,
+        },
+      });
       if (!workspace) {
         sendJson(response, 404, { error: "Workspace not found." });
         return;
       }
     } else {
-      const membership = auth.memberships.find((item) => item.workspaceId === targetWorkspaceId);
+      const membership = auth.memberships.find(
+        (item) => item.workspaceId === targetWorkspaceId && !item.workspace.deactivatedAt,
+      );
       if (!membership) {
         sendJson(response, 403, { error: "You do not have access to that workspace." });
         return;

@@ -231,6 +231,15 @@ export type AdminWorkspace = {
   ownerUserId: string;
   ownerName: string;
   ownerEmail: string;
+  memberCount: number;
+  deactivatedAt: string | null;
+  allowMemberTaskCreation: boolean;
+  members: Array<{
+    userId: string;
+    name: string;
+    email: string;
+    role: WorkspaceRole;
+  }>;
   createdAt: string;
   updatedAt: string;
 };
@@ -264,6 +273,16 @@ export type CreateWorkspacePayload = {
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
+};
+
+export type UpdateWorkspacePayload = {
+  name: string;
+  ownerUserId: string;
+  allowMemberTaskCreation: boolean;
+};
+
+export type UpdateWorkspaceStatusPayload = {
+  isActive: boolean;
 };
 
 export type AcceptWorkspaceInvitePayload = {

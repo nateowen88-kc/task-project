@@ -15,6 +15,7 @@
     "build": "npm run clean && npm run build:web && npm run build:api",
     "build:web": "tsc -p apps/web/tsconfig.json && vite build --config apps/web/vite.config.ts",
     "build:api": "prisma generate --config apps/api/prisma.config.ts && tsc -p apps/api/tsconfig.server.json",
+    "test": "node --import tsx --test apps/**/*.test.ts",
     "start": "node server-dist/apps/api/server/index.js",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "prisma:generate": "prisma generate --config apps/api/prisma.config.ts",

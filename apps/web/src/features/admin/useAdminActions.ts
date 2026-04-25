@@ -10,6 +10,8 @@ import {
   createWorkspaceInvite,
   resetAdminUserPassword,
   revokeWorkspaceInvite,
+  updateWorkspace,
+  updateWorkspaceStatus,
   updateAdminUser,
 } from "../../api";
 
@@ -34,6 +36,12 @@ export type WorkspaceFormState = {
   ownerName: string;
   ownerEmail: string;
   ownerPassword: string;
+};
+
+export type WorkspaceSettingsFormState = {
+  name: string;
+  ownerUserId: string;
+  allowMemberTaskCreation: boolean;
 };
 
 function createEmptyAdminForm(): AdminFormState {
@@ -93,6 +101,8 @@ export function useAdminActions({
   const [workspaceForm, setWorkspaceForm] = useState<WorkspaceFormState>(createEmptyWorkspaceForm());
   const [isWorkspaceSaving, setIsWorkspaceSaving] = useState(false);
   const [createdWorkspace, setCreatedWorkspace] = useState<AdminWorkspace | null>(null);
+  const [updatingWorkspaceId, setUpdatingWorkspaceId] = useState<string | null>(null);
+  const [togglingWorkspaceId, setTogglingWorkspaceId] = useState<string | null>(null);
 
   function resetAdminForm() {
     setAdminForm(createEmptyAdminForm());
@@ -233,6 +243,44 @@ export function useAdminActions({
     }
   }
 
+  async function handleWorkspaceSettingsSubmit(workspaceId: string, payload: WorkspaceSettingsFormState) {
+    if (!canCreateWorkspaces) {
+      onError("You do not have permission to manage workspaces.");
+      return;
+    }
+
+    try {
+      setUpdatingWorkspaceId(workspaceId);
+      onError(null);
+      await updateWorkspace(workspaceId, payload);
+      await refreshSession();
+      await refreshAppData();
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not update workspace."));
+    } finally {
+      setUpdatingWorkspaceId(null);
+    }
+  }
+
+  async function handleWorkspaceStatusChange(workspaceId: string, isActive: boolean) {
+    if (!canCreateWorkspaces) {
+      onError("You do not have permission to manage workspaces.");
+      return;
+    }
+
+    try {
+      setTogglingWorkspaceId(workspaceId);
+      onError(null);
+      await updateWorkspaceStatus(workspaceId, isActive);
+      await refreshSession();
+      await refreshAppData();
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not update workspace status."));
+    } finally {
+      setTogglingWorkspaceId(null);
+    }
+  }
+
   return {
     adminForm,
     setAdminForm,
@@ -248,6 +296,8 @@ export function useAdminActions({
     setWorkspaceForm,
     isWorkspaceSaving,
     createdWorkspace,
+    updatingWorkspaceId,
+    togglingWorkspaceId,
     resetAdminForm,
     resetInviteForm,
     resetWorkspaceForm,
@@ -257,5 +307,7 @@ export function useAdminActions({
     handleInviteSubmit,
     handleRevokeInvite,
     handleWorkspaceSubmit,
+    handleWorkspaceSettingsSubmit,
+    handleWorkspaceStatusChange,
   };
 }
