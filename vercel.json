@@ -48,10 +48,6 @@
   ],
   "rewrites": [
     {
-      "source": "/api/admin/:path*",
-      "destination": "/api/auth/admin/:path*"
-    },
-    {
       "source": "/api/tasks",
       "destination": "/api/tasks/index"
     },
