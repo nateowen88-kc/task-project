@@ -1,10 +1,10 @@
 ## Render Deploy
 
-TimeSmith is already set up to run as a single Node web service in production:
+TimeSmith should run on Render as the backend service only:
 
-- Vite builds the frontend into `dist`
-- the Express server serves the built frontend from `dist`
-- the production entrypoint is `server-dist/server/index.js`
+- Vercel serves the frontend from `apps/web/dist`
+- Render runs the Node API from `server-dist/apps/api/server/index.js`
+- the frontend should call Render through `https://api.timesmithhq.com`
 
 ### 1. Create the database
 
@@ -18,7 +18,7 @@ Create a Render web service from this GitHub repo.
 
 Use:
 
-- Build command: `npm install && npm run build`
+- Build command: `npm install && npm run build:api`
 - Start command: `npm run start`
 
 ### 3. Configure environment variables
@@ -47,7 +47,7 @@ EMAIL_INBOUND_TOKEN=...
 After the database is attached, run:
 
 ```bash
-npx prisma migrate deploy
+npm run prisma:migrate:deploy
 ```
 
 You can do this either:
@@ -55,24 +55,15 @@ You can do this either:
 - as a one-off shell command in Render
 - or as a predeploy step in your release process
 
-### 5. Add the custom domain
+### 5. Add the backend custom domain
 
 In Render, add:
 
-- `www.timesmithhq.com`
-
-Optionally also add:
-
-- `timesmithhq.com`
-
-Recommended setup:
-
-- primary app host: `www.timesmithhq.com`
-- redirect apex `timesmithhq.com` to `www.timesmithhq.com`
+- `api.timesmithhq.com`
 
 ### 6. Update DNS
 
-Use the DNS values Render gives you for the custom domain.
+Use the DNS values Render gives you for `api.timesmithhq.com`.
 
 Do not point the public domain at your local machine.
 
@@ -81,3 +72,4 @@ Do not point the public domain at your local machine.
 - Local-only scripts such as `npm run dev` and `npm run dev:https-proxy` are not used in production.
 - Local certs in `certs/` are only for `timesmith.test`.
 - In production, TLS should be terminated by Render.
+- Vercel should have `VITE_API_BASE_URL=https://api.timesmithhq.com`.

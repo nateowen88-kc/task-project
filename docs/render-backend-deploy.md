@@ -13,7 +13,7 @@ Render service setup:
 
 1. Create a new Web Service from this repo.
 2. Use these settings:
-   - Build Command: `npm install && npm run build`
+   - Build Command: `npm install && npm run build:api`
    - Start Command: `npm run start`
 3. Add environment variables:
    - `NODE_ENV=production`
@@ -41,7 +41,7 @@ Database migration:
 Run against production Neon before using the backend:
 
 ```bash
-npx prisma migrate deploy
+npm run prisma:migrate:deploy
 ```
 
 Recommended checks after deployment:

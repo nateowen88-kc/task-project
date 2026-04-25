@@ -1,15 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "buildCommand": "npm run build:web",
+  "outputDirectory": "apps/web/dist",
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://www.timesmithhq.com https://timesmithhq.com https://*.vercel.app; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://api.timesmithhq.com https://www.timesmithhq.com https://timesmithhq.com https://*.vercel.app; upgrade-insecure-requests"
         },
         {
           "key": "Referrer-Policy",
@@ -48,31 +48,11 @@
   ],
   "rewrites": [
     {
-      "source": "/api/tasks",
-      "destination": "/api/tasks/index"
-    },
-    {
-      "source": "/api/today",
-      "destination": "/api/agenda/today"
-    },
-    {
-      "source": "/api/notifications",
-      "destination": "/api/notifications/index"
-    },
-    {
-      "source": "/api/workspace-members",
-      "destination": "/api/notifications/workspace-members"
-    },
-    {
-      "source": "/api/captured-items",
-      "destination": "/api/captured-items/index"
-    },
-    {
       "source": "/",
       "destination": "/index.html"
     },
     {
-      "source": "/:path((?!api/).*)",
+      "source": "/:path*",
       "destination": "/index.html"
     }
   ]

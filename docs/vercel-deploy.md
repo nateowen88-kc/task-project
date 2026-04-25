@@ -2,23 +2,13 @@
 
 This repo is set up for Vercel in a split deployment shape:
 
-- the frontend is built by Vite into `dist`
-- Vercel serves the static frontend from `dist`
-- the Express API is exposed as Vercel Functions under `api/`
+- the frontend is built from `apps/web`
+- Vercel serves the static frontend from `apps/web/dist`
+- the backend runs separately on Render at `https://api.timesmithhq.com`
 
 ### Important constraint
 
-Do not use `localhost:5432` as the production database URL.
-
-Vercel cannot connect to your laptop's local Postgres in production. You need a hosted Postgres database for deployed environments.
-
-Use a real hosted database such as:
-
-- Neon
-- Supabase
-- Railway Postgres
-- Render Postgres
-- AWS RDS
+Vercel should not host the API for this repo anymore. The frontend should call the Render backend through `VITE_API_BASE_URL`.
 
 ### Project settings
 
@@ -27,44 +17,21 @@ Vercel should detect this as a Vite project.
 The repo includes:
 
 - `vercel.json`
-- `api/index.ts`
-- `api/[...path].ts`
+- `apps/web/index.html`
+- `apps/web/vite.config.ts`
 
 So:
 
 - frontend routes are served as SPA routes
-- `/api/*` is handled by the Express app
+- API requests go to Render through `https://api.timesmithhq.com`
 
 ### Environment variables
 
 Set these in Vercel:
 
 ```env
-NODE_ENV=production
-DATABASE_URL=postgresql://...
-CORS_ORIGINS=https://www.timesmithhq.com,https://timesmithhq.com
-RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=TimeSmith <hello@updates.timesmithhq.com>
-RESEND_REPLY_TO_EMAIL=support@timesmithhq.com
-SLACK_SIGNING_SECRET=...
-SLACK_DISABLE_SIGNATURE_VERIFICATION=false
-EMAIL_INBOUND_TOKEN=...
+VITE_API_BASE_URL=https://api.timesmithhq.com
 ```
-
-### Database migrations
-
-Run migrations against the hosted production database before cutting over:
-
-```bash
-npx prisma migrate deploy
-```
-
-You can do this:
-
-- from your machine with the production `DATABASE_URL`
-- or from CI before promoting the deployment
-
-Do not rely on a local database for production.
 
 ### Domain setup
 
@@ -82,14 +49,13 @@ Then add the DNS records Vercel gives you at your DNS provider.
 
 1. Push to GitHub
 2. Import project into Vercel
-3. Add production env vars
-4. Point `DATABASE_URL` to a hosted Postgres database
-5. Run `npx prisma migrate deploy`
-6. Deploy
-7. Add domains and update DNS
+3. Add `VITE_API_BASE_URL=https://api.timesmithhq.com`
+4. Deploy
+5. Add domains and update DNS
 
 ### Notes
 
 - Local scripts like `npm run dev` and `npm run dev:https-proxy` are only for local development.
 - Local certs in `certs/` are not used on Vercel.
 - Vercel terminates TLS for the public domain.
+- Database and server runtime concerns belong to the Render deployment, not Vercel.
