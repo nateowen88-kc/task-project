@@ -9,7 +9,8 @@ import taskHandler from "./task-handler.js";
 function normalizeApiRouterPath(request: NativeRequest) {
   const url = request.url ?? "/";
   const [pathname, query = ""] = url.split("?");
-  const normalizedPath = pathname.startsWith("/api/router/") ? pathname.replace("/api/router", "/api") : pathname;
+  const normalizedPath =
+    pathname.startsWith("/api/router/") ? pathname.replace("/api/router", "/api") : pathname;
   request.url = `${normalizedPath}${query ? `?${query}` : ""}`;
 }
 
