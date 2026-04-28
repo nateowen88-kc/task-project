@@ -44,19 +44,11 @@ function defaultFromEnv(): AdminAppConfig {
 
 export async function getAdminAppConfig(tx: AppConfigClient = prisma): Promise<AdminAppConfig> {
   const record = await tx.appConfig.findUnique({ where: { id: APP_CONFIG_ID } });
-  const envDefaults = defaultFromEnv();
-  const dbConfig = fromRecord(record);
+  if (!record) {
+    return defaultFromEnv();
+  }
 
-  return {
-    appBaseUrl: dbConfig.appBaseUrl || envDefaults.appBaseUrl,
-    resendApiKey: dbConfig.resendApiKey || envDefaults.resendApiKey,
-    resendFromEmail: dbConfig.resendFromEmail || envDefaults.resendFromEmail,
-    resendReplyToEmail: dbConfig.resendReplyToEmail || envDefaults.resendReplyToEmail,
-    slackSigningSecret: dbConfig.slackSigningSecret || envDefaults.slackSigningSecret,
-    slackDisableSignatureVerification:
-      dbConfig.slackDisableSignatureVerification || envDefaults.slackDisableSignatureVerification,
-    emailInboundToken: dbConfig.emailInboundToken || envDefaults.emailInboundToken,
-  };
+  return fromRecord(record);
 }
 
 export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPayload>): input is UpdateAppConfigPayload {
