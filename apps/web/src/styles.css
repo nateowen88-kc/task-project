@@ -466,6 +466,16 @@ a {
   gap: 0.85rem;
 }
 
+.admin-users-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-users-list {
+  display: grid;
+  gap: 0.85rem;
+}
+
 .admin-user-card,
 .admin-form-panel {
   border: 1px solid rgba(89, 108, 122, 0.12);

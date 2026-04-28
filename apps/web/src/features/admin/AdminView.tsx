@@ -300,7 +300,7 @@ export function AdminView({
           </div>
         </section>
 
-        <section className="admin-users">
+        <section className="admin-form-panel admin-users-panel">
           <div className="section-heading">
             <SectionHeaderLead>
               <p className="eyebrow">Existing users</p>
@@ -308,47 +308,49 @@ export function AdminView({
             </SectionHeaderLead>
           </div>
 
-          {adminUsers.length > 0 ? (
-            adminUsers.map((user) => (
-              <article key={user.id} className="admin-user-card">
-                <div className="admin-user-top">
-                  <div>
-                    <h3>{user.name}</h3>
-                    <p>{user.email}</p>
-                    <div className="admin-user-meta">
-                      <span>Updated {formatReceivedLabel(user.updatedAt)}</span>
+          <div className="admin-users-list">
+            {adminUsers.length > 0 ? (
+              adminUsers.map((user) => (
+                <article key={user.id} className="admin-user-card">
+                  <div className="admin-user-top">
+                    <div>
+                      <h3>{user.name}</h3>
+                      <p>{user.email}</p>
+                      <div className="admin-user-meta">
+                        <span>Updated {formatReceivedLabel(user.updatedAt)}</span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="admin-user-actions">
-                    <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>
-                    {canResetPasswords && (
+                    <div className="admin-user-actions">
+                      <span className={`role-badge ${user.role}`}>{roleLabels[user.role]}</span>
+                      {canResetPasswords && (
+                        <button
+                          className="ghost-button compact"
+                          type="button"
+                          onClick={() => onResetPassword(user)}
+                          disabled={isPasswordResettingUserId === user.id}
+                        >
+                          {isPasswordResettingUserId === user.id ? "Resetting..." : "Reset password"}
+                        </button>
+                      )}
                       <button
                         className="ghost-button compact"
                         type="button"
-                        onClick={() => onResetPassword(user)}
-                        disabled={isPasswordResettingUserId === user.id}
+                        onClick={() => onStartEdit(user)}
+                        disabled={user.role === "owner" && !canPromoteToOwner}
                       >
-                        {isPasswordResettingUserId === user.id ? "Resetting..." : "Reset password"}
+                        Edit user
                       </button>
-                    )}
-                    <button
-                      className="ghost-button compact"
-                      type="button"
-                      onClick={() => onStartEdit(user)}
-                      disabled={user.role === "owner" && !canPromoteToOwner}
-                    >
-                      Edit user
-                    </button>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="empty-state">
-              <p>No users yet.</p>
-              <span>Create the first workspace member from the form.</span>
-            </div>
-          )}
+                </article>
+              ))
+            ) : (
+              <div className="empty-state">
+                <p>No users yet.</p>
+                <span>Create the first workspace member from the form.</span>
+              </div>
+            )}
+          </div>
         </section>
 
         {canCreateWorkspaces && (
