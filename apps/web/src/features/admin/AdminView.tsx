@@ -187,7 +187,7 @@ export function AdminView({
           )}
         </section>
 
-        <section className="admin-form-panel">
+        <section className="admin-form-panel admin-form-panel-wide">
           <div className="section-heading">
             <SectionHeaderLead>
               <p className="eyebrow">{adminEditingUserId ? "Edit user" : "Add user"}</p>
@@ -310,7 +310,7 @@ export function AdminView({
             </div>
           </form>
 
-          <div className="task-detail-list" style={{ marginTop: "16px" }}>
+          <div className="task-detail-list admin-detail-list" style={{ marginTop: "16px" }}>
             {adminInvites.length ? (
               adminInvites.map((invite) => (
                 <article key={invite.id} className="detail-card">
@@ -345,7 +345,7 @@ export function AdminView({
         </section>
 
         {canCreateWorkspaces && (
-          <section className="admin-form-panel">
+          <section className="admin-form-panel admin-form-panel-wide">
             <div className="section-heading">
               <SectionHeaderLead>
                 <p className="eyebrow">Application config</p>
@@ -453,7 +453,7 @@ export function AdminView({
               </SectionHeaderLead>
             </div>
 
-            <div className="task-detail-list">
+            <div className="task-detail-list admin-detail-list admin-workspace-list">
               {adminWorkspaces.length ? (
                 adminWorkspaces.map((workspace) => {
                   const draft = workspaceDrafts[workspace.id] ?? buildWorkspaceDraft(workspace);
@@ -470,7 +470,7 @@ export function AdminView({
                         {workspace.slug} · {workspace.memberCount} member{workspace.memberCount === 1 ? "" : "s"}
                       </p>
 
-                      <div className="task-form">
+                      <div className="task-form workspace-settings-grid">
                         <label>
                           Workspace name
                           <input

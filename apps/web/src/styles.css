@@ -474,6 +474,10 @@ a {
   padding: 1rem;
 }
 
+.admin-form-panel-wide {
+  grid-column: 1 / -1;
+}
+
 .admin-user-top {
   display: flex;
   align-items: start;
@@ -1131,6 +1135,23 @@ a {
   color: rgba(31, 42, 51, 0.82);
 }
 
+.admin-detail-list {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.workspace-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem 1rem;
+}
+
+.workspace-settings-grid > .admin-user-meta,
+.workspace-settings-grid > .admin-form-actions {
+  grid-column: 1 / -1;
+}
+
 .detail-empty {
   display: grid;
   place-items: center;
@@ -1346,6 +1367,10 @@ a {
   .modal-field-grid > label,
   .modal-field-grid > label.field-span-wide {
     grid-column: span 1;
+  }
+
+  .workspace-settings-grid {
+    grid-template-columns: 1fr;
   }
 
   .hero-compact {
