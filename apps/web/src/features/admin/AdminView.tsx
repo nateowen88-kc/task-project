@@ -659,8 +659,8 @@ export function AdminView({
                 <button className="ghost-button" type="button" onClick={onResetAppConfigForm}>
                   Clear
                 </button>
-                <button className="primary-button" type="submit" disabled={!hasLoadedAppConfig || isAppConfigSaving}>
-                  {isAppConfigSaving ? "Saving..." : "Save configuration"}
+                <button className="primary-button" type="submit" disabled={isAppConfigSaving}>
+                  {isAppConfigSaving ? "Saving..." : hasLoadedAppConfig ? "Save configuration" : "Save configuration"}
                 </button>
               </div>
             </form>
