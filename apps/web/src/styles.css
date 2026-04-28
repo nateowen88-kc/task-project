@@ -478,6 +478,12 @@ a {
   grid-column: 1 / -1;
 }
 
+.admin-subsection {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(89, 108, 122, 0.12);
+}
+
 .admin-user-top {
   display: flex;
   align-items: start;
@@ -1139,6 +1145,12 @@ a {
   max-height: none;
   overflow: visible;
   padding-right: 0;
+}
+
+.admin-compact-list {
+  max-height: 240px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
 }
 
 .workspace-settings-grid {
