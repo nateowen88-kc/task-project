@@ -3,9 +3,7 @@ import express from "express";
 import { CaptureSourceType, CaptureStatus } from "@prisma/client";
 
 import { prisma } from "../lib/db.js";
-
-const slackSigningSecret = process.env.SLACK_SIGNING_SECRET;
-const slackDisableSignatureVerification = process.env.SLACK_DISABLE_SIGNATURE_VERIFICATION === "true";
+import { getAdminAppConfig } from "./app-config-service.js";
 
 export type CaptureSourceValue = "slack" | "email";
 
@@ -82,7 +80,11 @@ function getHeader(request: HeaderCarrier, name: string) {
   return value ?? null;
 }
 
-export function verifySlackSignature(request: HeaderCarrier, rawBody: Buffer) {
+export async function verifySlackSignature(request: HeaderCarrier, rawBody: Buffer) {
+  const config = await getAdminAppConfig();
+  const slackSigningSecret = config.slackSigningSecret.trim();
+  const slackDisableSignatureVerification = config.slackDisableSignatureVerification;
+
   if (slackDisableSignatureVerification) {
     return true;
   }

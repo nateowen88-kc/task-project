@@ -1,5 +1,6 @@
 import { request, resolveRequestInput } from "./client";
 import type {
+  AdminAppConfig,
   AdminWorkspace,
   AdminUser,
   AdminUserPayload,
@@ -25,6 +26,10 @@ function fetchWorkspaceInvites() {
 
 function fetchAdminWorkspaces() {
   return request<AdminWorkspace[]>(API_ROUTES.admin.workspaces);
+}
+
+function fetchAdminAppConfig() {
+  return request<AdminAppConfig>(API_ROUTES.admin.appConfig);
 }
 
 function createAdminUser(payload: AdminUserPayload) {
@@ -69,6 +74,13 @@ function updateWorkspaceStatus(id: string, isActive: boolean) {
   });
 }
 
+function updateAdminAppConfig(payload: AdminAppConfig) {
+  return request<AdminAppConfig>(API_ROUTES.admin.appConfig, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 function revokeWorkspaceInvite(id: string) {
   return request<null>(API_ROUTES.admin.invite(id), {
     method: "DELETE",
@@ -86,19 +98,21 @@ async function resetAdminUserPassword(userId: string) {
     throw new Error(payload.error ?? "Unable to reset password.");
   }
 
-  return (await response.json()) as { password: string };
+  return (await response.json()) as { emailSent: boolean };
 }
 
 export {
   createAdminUser,
   createWorkspace,
   createWorkspaceInvite,
+  fetchAdminAppConfig,
   fetchAdminWorkspaces,
   fetchAdminUsers,
   fetchWorkspaceInvites,
   fetchWorkspaceMembers,
   revokeWorkspaceInvite,
   resetAdminUserPassword,
+  updateAdminAppConfig,
   updateWorkspace,
   updateWorkspaceStatus,
   updateAdminUser,

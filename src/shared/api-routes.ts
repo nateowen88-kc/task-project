@@ -7,6 +7,8 @@ export const API_ROUTES = {
     register: "/api/auth/register",
     invite: (token: string) => `/api/auth/invite/${token}`,
     acceptInvite: "/api/auth/accept-invite",
+    forgotPassword: "/api/auth/forgot-password",
+    resetPassword: "/api/auth/reset-password",
     logout: "/api/auth/logout",
     workspace: "/api/auth/workspace",
   },
@@ -19,6 +21,7 @@ export const API_ROUTES = {
     workspaces: "/api/admin/workspaces",
     workspace: (id: string) => `/api/admin/workspaces/${id}`,
     workspaceStatus: (id: string) => `/api/admin/workspaces/${id}/status`,
+    appConfig: "/api/admin/app-config",
   },
   agenda: {
     today: "/api/today",

@@ -224,6 +224,16 @@ export type WorkspaceInviteLookup = {
   invite: WorkspaceInvite;
 };
 
+export type AdminAppConfig = {
+  appBaseUrl: string;
+  resendApiKey: string;
+  resendFromEmail: string;
+  resendReplyToEmail: string;
+  slackSigningSecret: string;
+  slackDisableSignatureVerification: boolean;
+  emailInboundToken: string;
+};
+
 export type AdminWorkspace = {
   id: string;
   name: string;
@@ -246,6 +256,15 @@ export type AdminWorkspace = {
 
 export type LoginPayload = {
   email: string;
+  password: string;
+};
+
+export type ForgotPasswordPayload = {
+  email: string;
+};
+
+export type ResetPasswordPayload = {
+  token: string;
   password: string;
 };
 
@@ -285,6 +304,8 @@ export type UpdateWorkspaceStatusPayload = {
   isActive: boolean;
 };
 
+export type UpdateAppConfigPayload = AdminAppConfig;
+
 export type AcceptWorkspaceInvitePayload = {
   token: string;
   name: string;
@@ -320,5 +341,5 @@ export type GenerateAgendaPayload = {
 export type MarkNotificationReadResponse = Notification;
 
 export type ResetPasswordResponse = {
-  password: string;
+  emailSent: boolean;
 };

@@ -9,10 +9,13 @@ import {
   isWorkspaceOwner,
   workspaceWhere,
   workspaceWhereForUser,
-  createTemporaryPassword,
 } from "../lib/auth.js";
 import { toApiAdminUser, toApiWorkspaceInvite } from "../lib/serializers.js";
-import { sendWorkspaceInviteEmail } from "../services/email-service.js";
+import {
+  sendAccountSetupEmail,
+  sendPasswordRecoveryEmail,
+  sendWorkspaceInviteEmail,
+} from "../services/email-service.js";
 import {
   createWorkspaceWithOwner,
   createWorkspaceMembership,
@@ -27,12 +30,21 @@ import {
 } from "../services/workspace-service.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import type {
+  AdminAppConfig,
   AdminUserPayload,
   CreateWorkspaceInvitePayload,
   CreateWorkspacePayload,
   UpdateWorkspacePayload,
   UpdateWorkspaceStatusPayload,
 } from "../../../../../src/shared/api-types.js";
+import {
+  getAdminAppConfig,
+  resolveAppBaseUrl,
+  updateAdminAppConfig,
+  validateUpdateAppConfigInput,
+} from "../services/app-config-service.js";
+import { createPasswordResetToken } from "../services/password-reset-service.js";
+import { PasswordResetTokenType } from "@prisma/client";
 import {
   getOrigin,
   getPathname,
@@ -174,6 +186,21 @@ export default async function adminHandler(request: NativeRequest, response: Nat
       });
     }
 
+    try {
+      const { token } = await createPasswordResetToken(membership.userId, PasswordResetTokenType.ACCOUNT_SETUP);
+      const baseUrl = await resolveAppBaseUrl(getOrigin(request));
+      if (baseUrl) {
+        await sendAccountSetupEmail({
+          to: membership.user.email,
+          recipientName: membership.user.name,
+          workspaceName: auth.workspace.name,
+          setupUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
+        });
+      }
+    } catch (error) {
+      console.error("[email] failed to send account setup email", error);
+    }
+
     sendJson(response, 201, toApiAdminUser(membership));
     return;
   }
@@ -254,6 +281,20 @@ export default async function adminHandler(request: NativeRequest, response: Nat
     try {
       const result = await prisma.$transaction((tx) => createWorkspaceWithOwner(tx, input));
       const workspace = await fetchWorkspaceForAdmin(prisma, result.workspace.id);
+      try {
+        const { token } = await createPasswordResetToken(result.owner.id, PasswordResetTokenType.ACCOUNT_SETUP);
+        const baseUrl = await resolveAppBaseUrl(getOrigin(request));
+        if (baseUrl && workspace) {
+          await sendAccountSetupEmail({
+            to: result.owner.email,
+            recipientName: result.owner.name,
+            workspaceName: workspace.name,
+            setupUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
+          });
+        }
+      } catch (emailError) {
+        console.error("[email] failed to send workspace owner setup email", emailError);
+      }
       sendJson(response, 201, workspace ? toApiAdminWorkspace(workspace) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create workspace.";
@@ -413,15 +454,49 @@ export default async function adminHandler(request: NativeRequest, response: Nat
       return;
     }
 
-    const password = createTemporaryPassword();
-    const passwordHash = hashPassword(password);
+    const { token } = await createPasswordResetToken(membership.userId, PasswordResetTokenType.PASSWORD_RECOVERY);
+    const baseUrl = await resolveAppBaseUrl(getOrigin(request));
 
-    await prisma.user.update({
-      where: { id: membership.userId },
-      data: { passwordHash },
-    });
+    if (baseUrl) {
+      try {
+        await sendPasswordRecoveryEmail({
+          to: membership.user.email,
+          recipientName: membership.user.name,
+          resetUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
+        });
+        sendJson(response, 200, { emailSent: true });
+        return;
+      } catch (error) {
+        console.error("[email] failed to send password recovery email", error);
+      }
+    }
 
-    sendJson(response, 200, { password });
+    sendJson(response, 200, { emailSent: false });
+    return;
+  }
+
+  if (method === "GET" && pathname === API_ROUTES.admin.appConfig) {
+    if (!requireGodMode()) {
+      return;
+    }
+
+    sendJson(response, 200, await getAdminAppConfig());
+    return;
+  }
+
+  if (method === "PUT" && pathname === API_ROUTES.admin.appConfig) {
+    if (!requireGodMode()) {
+      return;
+    }
+
+    const input = (await readJsonBody<Partial<AdminAppConfig>>(request)) ?? {};
+
+    if (!validateUpdateAppConfigInput(input)) {
+      sendJson(response, 400, { error: "Invalid app configuration payload." });
+      return;
+    }
+
+    sendJson(response, 200, await updateAdminAppConfig(input));
     return;
   }
 

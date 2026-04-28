@@ -12,6 +12,7 @@ import {
   type EmailInboundInput,
   type SlackInteractionPayload,
 } from "../services/capture-service.js";
+import { getAdminAppConfig } from "../services/app-config-service.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import {
   getHeader,
@@ -24,8 +25,6 @@ import {
   sendJson,
   sendText,
 } from "./http.js";
-
-const emailInboundToken = process.env.EMAIL_INBOUND_TOKEN;
 
 async function readBuffer(request: NativeRequest) {
   const chunks: Buffer[] = [];
@@ -45,7 +44,7 @@ export default async function integrationsHandler(request: NativeRequest, respon
     const rawBody = await readBuffer(request);
     console.log("[slack] interactions request received");
 
-    if (!verifySlackSignature(request, rawBody)) {
+    if (!(await verifySlackSignature(request, rawBody))) {
       console.log("[slack] interactions rejected: invalid signature");
       sendJson(response, 401, { error: "Invalid Slack signature." });
       return;
@@ -99,7 +98,7 @@ export default async function integrationsHandler(request: NativeRequest, respon
     const rawBody = await readBuffer(request);
     console.log("[slack] slash command request received");
 
-    if (!verifySlackSignature(request, rawBody)) {
+    if (!(await verifySlackSignature(request, rawBody))) {
       console.log("[slack] slash command rejected: invalid signature");
       sendJson(response, 401, { error: "Invalid Slack signature." });
       return;
@@ -131,10 +130,11 @@ export default async function integrationsHandler(request: NativeRequest, respon
 
   if (method === "POST" && pathname === API_ROUTES.integrations.emailInbound) {
     const input = (await readJsonBody<Partial<EmailInboundInput>>(request)) ?? {};
+    const appConfig = await getAdminAppConfig();
     const authorization = getHeader(request, "authorization");
     const directTokenHeader = getHeader(request, "x-email-inbound-token");
     const bearerToken = authorization?.replace(/^Bearer\\s+/i, "").trim() ?? null;
-    const expectedToken = emailInboundToken?.trim() ?? null;
+    const expectedToken = appConfig.emailInboundToken.trim() || null;
     const bodyToken = input.token?.trim() ?? null;
 
     if (

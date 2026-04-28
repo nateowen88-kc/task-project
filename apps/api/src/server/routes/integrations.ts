@@ -14,8 +14,7 @@ import {
   type EmailInboundInput,
   type SlackInteractionPayload,
 } from "../services/capture-service.js";
-
-const emailInboundToken = process.env.EMAIL_INBOUND_TOKEN;
+import { getAdminAppConfig } from "../services/app-config-service.js";
 
 export const slackFormMiddleware = express.urlencoded({
   extended: false,
@@ -31,7 +30,7 @@ export function createIntegrationsRouter() {
     const rawBody = (request as express.Request & { rawBody?: Buffer }).rawBody ?? Buffer.from("");
     console.log("[slack] interactions request received");
 
-    if (!verifySlackSignature(request, rawBody)) {
+    if (!(await verifySlackSignature(request, rawBody))) {
       console.log("[slack] interactions rejected: invalid signature");
       response.status(401).json({ error: "Invalid Slack signature." });
       return;
@@ -82,7 +81,7 @@ export function createIntegrationsRouter() {
     const rawBody = (request as express.Request & { rawBody?: Buffer }).rawBody ?? Buffer.from("");
     console.log("[slack] slash command request received");
 
-    if (!verifySlackSignature(request, rawBody)) {
+    if (!(await verifySlackSignature(request, rawBody))) {
       console.log("[slack] slash command rejected: invalid signature");
       response.status(401).json({ error: "Invalid Slack signature." });
       return;
@@ -113,10 +112,11 @@ export function createIntegrationsRouter() {
 
   router.post(API_ROUTES.integrations.emailInbound, async (request, response) => {
     const input = request.body as Partial<EmailInboundInput>;
+    const appConfig = await getAdminAppConfig();
     const authorization = request.header("authorization");
     const directTokenHeader = request.header("x-email-inbound-token");
     const bearerToken = authorization?.replace(/^Bearer\\s+/i, "").trim() ?? null;
-    const expectedToken = emailInboundToken?.trim() ?? null;
+    const expectedToken = appConfig.emailInboundToken.trim() || null;
     const bodyToken = input.token?.trim() ?? null;
 
     if (

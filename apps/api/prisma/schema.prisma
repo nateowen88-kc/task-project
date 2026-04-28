@@ -65,6 +65,11 @@ enum WorkspaceInviteRole {
   USER
 }
 
+enum PasswordResetTokenType {
+  ACCOUNT_SETUP
+  PASSWORD_RECOVERY
+}
+
 model User {
   id              String            @id @default(cuid())
   email           String            @unique
@@ -85,6 +90,20 @@ model User {
   receivedNotifications Notification[] @relation("NotificationRecipient")
   actorNotifications    Notification[] @relation("NotificationActor")
   sentWorkspaceInvites  WorkspaceInvite[] @relation("WorkspaceInviteSender")
+  passwordResetTokens   PasswordResetToken[]
+}
+
+model AppConfig {
+  id                                 String   @id
+  appBaseUrl                         String?
+  resendApiKey                       String?
+  resendFromEmail                    String?
+  resendReplyToEmail                 String?
+  slackSigningSecret                 String?
+  slackDisableSignatureVerification  Boolean  @default(false)
+  emailInboundToken                  String?
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime @default(now()) @updatedAt
 }
 
 model Workspace {
@@ -132,6 +151,20 @@ model Session {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id         String                 @id @default(cuid())
+  tokenHash  String                 @unique
+  userId     String
+  type       PasswordResetTokenType
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @default(now()) @updatedAt
+  user       User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, expiresAt])
 }
 
 model Task {

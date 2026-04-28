@@ -5,6 +5,7 @@ import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
 import type {
+  AppConfigFormState,
   AdminFormState,
   InviteFormState,
   WorkspaceFormState,
@@ -31,20 +32,26 @@ type AdminViewProps = {
   createdWorkspace: AdminWorkspace | null;
   updatingWorkspaceId: string | null;
   togglingWorkspaceId: string | null;
+  appConfigForm: AppConfigFormState;
+  hasLoadedAppConfig: boolean;
+  isAppConfigSaving: boolean;
   roleLabels: Record<WorkspaceRole, string>;
   todayBadge: { month: string; day: number; weekday: string };
   workspaceName: string;
   onResetForm: () => void;
   onResetInviteForm: () => void;
   onResetWorkspaceForm: () => void;
+  onResetAppConfigForm: () => void;
   onStartEdit: (user: AdminUser) => void;
   onResetPassword: (user: AdminUser) => void;
   onAdminFormChange: (updater: (current: AdminFormState) => AdminFormState) => void;
   onInviteFormChange: (updater: (current: InviteFormState) => InviteFormState) => void;
   onWorkspaceFormChange: (updater: (current: WorkspaceFormState) => WorkspaceFormState) => void;
+  onAppConfigFormChange: (updater: (current: AppConfigFormState) => AppConfigFormState) => void;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   onInviteSubmit: React.FormEventHandler<HTMLFormElement>;
   onWorkspaceSubmit: React.FormEventHandler<HTMLFormElement>;
+  onAppConfigSubmit: React.FormEventHandler<HTMLFormElement>;
   onWorkspaceSettingsSubmit: (workspaceId: string, payload: WorkspaceSettingsFormState) => void;
   onWorkspaceStatusChange: (workspaceId: string, isActive: boolean) => void;
   onRevokeInvite: (inviteId: string) => void;
@@ -78,20 +85,26 @@ export function AdminView({
   createdWorkspace,
   updatingWorkspaceId,
   togglingWorkspaceId,
+  appConfigForm,
+  hasLoadedAppConfig,
+  isAppConfigSaving,
   roleLabels,
   todayBadge,
   workspaceName,
   onResetForm,
   onResetInviteForm,
   onResetWorkspaceForm,
+  onResetAppConfigForm,
   onStartEdit,
   onResetPassword,
   onAdminFormChange,
   onInviteFormChange,
   onWorkspaceFormChange,
+  onAppConfigFormChange,
   onSubmit,
   onInviteSubmit,
   onWorkspaceSubmit,
+  onAppConfigSubmit,
   onWorkspaceSettingsSubmit,
   onWorkspaceStatusChange,
   onRevokeInvite,
@@ -330,6 +343,106 @@ export function AdminView({
             )}
           </div>
         </section>
+
+        {canCreateWorkspaces && (
+          <section className="admin-form-panel">
+            <div className="section-heading">
+              <SectionHeaderLead>
+                <p className="eyebrow">Application config</p>
+                <h2>Integration settings</h2>
+              </SectionHeaderLead>
+            </div>
+
+            <form className="task-form" onSubmit={onAppConfigSubmit}>
+              <label>
+                App base URL
+                <input
+                  value={appConfigForm.appBaseUrl}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, appBaseUrl: event.target.value }))}
+                  placeholder="https://www.timesmithhq.com"
+                />
+              </label>
+
+              <label>
+                Resend API key
+                <input
+                  type="password"
+                  value={appConfigForm.resendApiKey}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendApiKey: event.target.value }))}
+                  autoComplete="off"
+                />
+              </label>
+
+              <label>
+                Resend from email
+                <input
+                  value={appConfigForm.resendFromEmail}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendFromEmail: event.target.value }))}
+                  placeholder="TimeSmith <hello@updates.timesmithhq.com>"
+                />
+              </label>
+
+              <label>
+                Resend reply-to email
+                <input
+                  value={appConfigForm.resendReplyToEmail}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendReplyToEmail: event.target.value }))}
+                  placeholder="support@timesmithhq.com"
+                />
+              </label>
+
+              <label>
+                Slack signing secret
+                <input
+                  type="password"
+                  value={appConfigForm.slackSigningSecret}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, slackSigningSecret: event.target.value }))}
+                  autoComplete="off"
+                />
+              </label>
+
+              <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={appConfigForm.slackDisableSignatureVerification}
+                  onChange={(event) =>
+                    onAppConfigFormChange((current) => ({
+                      ...current,
+                      slackDisableSignatureVerification: event.target.checked,
+                    }))
+                  }
+                />
+                Disable Slack signature verification
+              </label>
+
+              <label>
+                Email inbound token
+                <input
+                  type="password"
+                  value={appConfigForm.emailInboundToken}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, emailInboundToken: event.target.value }))}
+                  autoComplete="off"
+                />
+              </label>
+
+              <div className="detail-card">
+                <p>
+                  Database URL, CORS, cookie domain, and platform runtime settings remain environment configuration.
+                  This page manages app-level integrations and delivery settings.
+                </p>
+              </div>
+
+              <div className="admin-form-actions">
+                <button className="ghost-button" type="button" onClick={onResetAppConfigForm}>
+                  Clear
+                </button>
+                <button className="primary-button" type="submit" disabled={!hasLoadedAppConfig || isAppConfigSaving}>
+                  {isAppConfigSaving ? "Saving..." : "Save configuration"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
 
         {canCreateWorkspaces && (
           <section className="admin-form-panel">

@@ -1,15 +1,18 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import {
+  AdminAppConfig,
   AuthSession,
   AdminWorkspace,
   AdminUser,
   WorkspaceInviteRole,
   WorkspaceRole,
   createAdminUser,
+  fetchAdminAppConfig,
   createWorkspace,
   createWorkspaceInvite,
   resetAdminUserPassword,
   revokeWorkspaceInvite,
+  updateAdminAppConfig,
   updateWorkspace,
   updateWorkspaceStatus,
   updateAdminUser,
@@ -44,6 +47,8 @@ export type WorkspaceSettingsFormState = {
   allowMemberTaskCreation: boolean;
 };
 
+export type AppConfigFormState = AdminAppConfig;
+
 function createEmptyAdminForm(): AdminFormState {
   return {
     name: "",
@@ -66,6 +71,18 @@ function createEmptyWorkspaceForm(): WorkspaceFormState {
     ownerName: "",
     ownerEmail: "",
     ownerPassword: "",
+  };
+}
+
+function createEmptyAppConfigForm(): AppConfigFormState {
+  return {
+    appBaseUrl: "",
+    resendApiKey: "",
+    resendFromEmail: "",
+    resendReplyToEmail: "",
+    slackSigningSecret: "",
+    slackDisableSignatureVerification: false,
+    emailInboundToken: "",
   };
 }
 
@@ -103,6 +120,9 @@ export function useAdminActions({
   const [createdWorkspace, setCreatedWorkspace] = useState<AdminWorkspace | null>(null);
   const [updatingWorkspaceId, setUpdatingWorkspaceId] = useState<string | null>(null);
   const [togglingWorkspaceId, setTogglingWorkspaceId] = useState<string | null>(null);
+  const [appConfigForm, setAppConfigForm] = useState<AppConfigFormState>(createEmptyAppConfigForm());
+  const [hasLoadedAppConfig, setHasLoadedAppConfig] = useState(false);
+  const [isAppConfigSaving, setIsAppConfigSaving] = useState(false);
 
   function resetAdminForm() {
     setAdminForm(createEmptyAdminForm());
@@ -118,6 +138,25 @@ export function useAdminActions({
     setWorkspaceForm(createEmptyWorkspaceForm());
     setCreatedWorkspace(null);
   }
+
+  function resetAppConfigForm() {
+    setAppConfigForm(createEmptyAppConfigForm());
+  }
+
+  const ensureAppConfigLoaded = useCallback(async () => {
+    if (!canCreateWorkspaces || hasLoadedAppConfig) {
+      return;
+    }
+
+    try {
+      onError(null);
+      const config = await fetchAdminAppConfig();
+      setAppConfigForm(config);
+      setHasLoadedAppConfig(true);
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not load app configuration."));
+    }
+  }, [canCreateWorkspaces, hasLoadedAppConfig, onError]);
 
   function startAdminEdit(user: AdminUser) {
     setAdminEditingUserId(user.id);
@@ -141,7 +180,11 @@ export function useAdminActions({
       setIsPasswordResettingUserId(user.id);
       onError(null);
       const result = await resetAdminUserPassword(user.id);
-      window.alert(`Temporary password for ${user.email}: ${result.password}`);
+      window.alert(
+        result.emailSent
+          ? `Password recovery email sent to ${user.email}.`
+          : `Password recovery email was not sent because email delivery is not fully configured.`,
+      );
     } catch (error) {
       onError(toErrorMessage(error, "Could not reset password."));
     } finally {
@@ -281,6 +324,27 @@ export function useAdminActions({
     }
   }
 
+  async function handleAppConfigSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!canCreateWorkspaces) {
+      onError("You do not have permission to manage app configuration.");
+      return;
+    }
+
+    try {
+      setIsAppConfigSaving(true);
+      onError(null);
+      const updated = await updateAdminAppConfig(appConfigForm);
+      setAppConfigForm(updated);
+      setHasLoadedAppConfig(true);
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not save app configuration."));
+    } finally {
+      setIsAppConfigSaving(false);
+    }
+  }
+
   return {
     adminForm,
     setAdminForm,
@@ -298,9 +362,15 @@ export function useAdminActions({
     createdWorkspace,
     updatingWorkspaceId,
     togglingWorkspaceId,
+    appConfigForm,
+    setAppConfigForm,
+    hasLoadedAppConfig,
+    isAppConfigSaving,
     resetAdminForm,
     resetInviteForm,
     resetWorkspaceForm,
+    resetAppConfigForm,
+    ensureAppConfigLoaded,
     startAdminEdit,
     handleResetUserPassword,
     handleAdminSubmit,
@@ -309,5 +379,6 @@ export function useAdminActions({
     handleWorkspaceSubmit,
     handleWorkspaceSettingsSubmit,
     handleWorkspaceStatusChange,
+    handleAppConfigSubmit,
   };
 }

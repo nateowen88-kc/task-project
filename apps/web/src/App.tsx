@@ -76,6 +76,7 @@ export default function App() {
   const [hideDoneInWorkflow, setHideDoneInWorkflow] = useState(false);
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("all");
   const [inviteLookup, setInviteLookup] = useState<WorkspaceInviteLookup | null>(null);
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   const canManageUsers = Boolean(session?.permissions.canManageUsers);
   const canCreateWorkspaces = Boolean(session?.permissions.canCreateWorkspaces);
@@ -127,6 +128,7 @@ export default function App() {
   const {
     authMode,
     setAuthMode,
+    authNotice,
     isAuthSubmitting,
     handleAuthSubmit,
     handleLogout,
@@ -196,9 +198,15 @@ export default function App() {
     createdWorkspace,
     updatingWorkspaceId,
     togglingWorkspaceId,
+    appConfigForm,
+    setAppConfigForm,
+    hasLoadedAppConfig,
+    isAppConfigSaving,
     resetAdminForm,
     resetInviteForm,
     resetWorkspaceForm,
+    resetAppConfigForm,
+    ensureAppConfigLoaded,
     startAdminEdit,
     handleResetUserPassword,
     handleAdminSubmit,
@@ -207,6 +215,7 @@ export default function App() {
     handleWorkspaceSubmit,
     handleWorkspaceSettingsSubmit,
     handleWorkspaceStatusChange,
+    handleAppConfigSubmit,
   } = useAdminActions({
     canManageUsers,
     canCreateWorkspaces,
@@ -347,6 +356,14 @@ export default function App() {
   ]);
 
   useEffect(() => {
+    if (!session || activeView !== "admin" || !canCreateWorkspaces) {
+      return;
+    }
+
+    void ensureAppConfigLoaded();
+  }, [activeView, canCreateWorkspaces, ensureAppConfigLoaded, session]);
+
+  useEffect(() => {
     if (!session || !isModalOpen || hasLoadedWorkspaceMembers) {
       return;
     }
@@ -357,18 +374,30 @@ export default function App() {
   useEffect(() => {
     if (session) {
       setInviteLookup(null);
+      setResetToken(null);
       return;
     }
 
-    const token = new URLSearchParams(window.location.search).get("invite");
+    const params = new URLSearchParams(window.location.search);
+    const nextResetToken = params.get("reset");
+    if (nextResetToken) {
+      setInviteLookup(null);
+      setResetToken(nextResetToken);
+      setAuthMode("reset-password");
+      return;
+    }
+
+    const token = params.get("invite");
     if (!token) {
       setInviteLookup(null);
+      setResetToken(null);
       return;
     }
 
     void fetchInvite(token)
       .then((result) => {
         setInviteLookup(result);
+        setResetToken(null);
         setAuthMode("register");
       })
       .catch((inviteError) => {
@@ -385,9 +414,11 @@ export default function App() {
     return (
       <AuthCard
         error={error}
+        notice={authNotice}
         isSubmitting={isAuthSubmitting}
         mode={authMode}
         inviteLookup={inviteLookup}
+        resetToken={resetToken}
         onModeChange={setAuthMode}
         onSubmit={handleAuthSubmit}
       />
@@ -544,20 +575,26 @@ export default function App() {
               createdWorkspace={createdWorkspace}
               updatingWorkspaceId={updatingWorkspaceId}
               togglingWorkspaceId={togglingWorkspaceId}
+              appConfigForm={appConfigForm}
+              hasLoadedAppConfig={hasLoadedAppConfig}
+              isAppConfigSaving={isAppConfigSaving}
               roleLabels={ROLE_LABELS}
               todayBadge={todayBadge}
               workspaceName={session.workspace.name}
               onResetForm={resetAdminForm}
               onResetInviteForm={resetInviteForm}
               onResetWorkspaceForm={resetWorkspaceForm}
+              onResetAppConfigForm={resetAppConfigForm}
               onStartEdit={startAdminEdit}
               onResetPassword={(user) => void handleResetUserPassword(user)}
               onAdminFormChange={(updater) => setAdminForm((current) => updater(current))}
               onInviteFormChange={(updater) => setInviteForm((current) => updater(current))}
               onWorkspaceFormChange={(updater) => setWorkspaceForm((current) => updater(current))}
+              onAppConfigFormChange={(updater) => setAppConfigForm((current) => updater(current))}
               onSubmit={(event) => void handleAdminSubmit(event)}
               onInviteSubmit={(event) => void handleInviteSubmit(event)}
               onWorkspaceSubmit={(event) => void handleWorkspaceSubmit(event)}
+              onAppConfigSubmit={(event) => void handleAppConfigSubmit(event)}
               onWorkspaceSettingsSubmit={(workspaceId, payload) => void handleWorkspaceSettingsSubmit(workspaceId, payload)}
               onWorkspaceStatusChange={(workspaceId, isActive) => void handleWorkspaceStatusChange(workspaceId, isActive)}
               onRevokeInvite={(inviteId) => void handleRevokeInvite(inviteId)}
