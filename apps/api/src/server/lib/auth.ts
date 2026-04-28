@@ -403,7 +403,31 @@ export async function createUniqueWorkspaceSlug(base: string, tx: Prisma.Transac
   return attempt;
 }
 
-export async function resolveCaptureWorkspaceId(inputWorkspaceSlug?: string | null) {
+export async function createUniqueInboundEmailKey(base: string, tx: Prisma.TransactionClient = prisma) {
+  const root = slugify(base).slice(0, 36);
+  let attempt = root;
+  let counter = 1;
+
+  while (await tx.workspace.findUnique({ where: { inboundEmailKey: attempt } })) {
+    counter += 1;
+    attempt = `${root}-${counter}`.slice(0, 48);
+  }
+
+  return attempt;
+}
+
+function extractRecipientLocalParts(recipientHeader?: string | null) {
+  if (!recipientHeader?.trim()) {
+    return [];
+  }
+
+  const matches = recipientHeader.match(/[A-Z0-9._%+-]+@([A-Z0-9.-]+)/gi) ?? [];
+  return matches
+    .map((value) => value.split("@")[0]?.trim().toLowerCase() ?? "")
+    .filter((value) => value.length > 0);
+}
+
+export async function resolveCaptureWorkspaceId(inputWorkspaceSlug?: string | null, recipientEmail?: string | null) {
   if (inputWorkspaceSlug?.trim()) {
     const explicit = await prisma.workspace.findUnique({
       where: { slug: inputWorkspaceSlug.trim() },
@@ -412,6 +436,22 @@ export async function resolveCaptureWorkspaceId(inputWorkspaceSlug?: string | nu
 
     if (explicit) {
       return explicit.id;
+    }
+  }
+
+  const recipientKeys = extractRecipientLocalParts(recipientEmail);
+  if (recipientKeys.length > 0) {
+    const byRecipient = await prisma.workspace.findFirst({
+      where: {
+        inboundEmailKey: {
+          in: recipientKeys,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (byRecipient) {
+      return byRecipient.id;
     }
   }
 

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Prisma, PrismaClient, WorkspaceRole } from "@prisma/client";
-import { createUniqueWorkspaceSlug, hashPassword } from "../lib/auth.js";
+import { createUniqueInboundEmailKey, createUniqueWorkspaceSlug, hashPassword } from "../lib/auth.js";
 import type { AdminWorkspace } from "../../../../../src/shared/api-types.js";
 
 export type WorkspaceRoleValue = "owner" | "admin" | "user";
@@ -142,6 +142,7 @@ export async function createWorkspaceWithOwner(
     data: {
       name: input.workspaceName.trim(),
       slug: await createUniqueWorkspaceSlug(input.workspaceName.trim(), tx as Prisma.TransactionClient),
+      inboundEmailKey: await createUniqueInboundEmailKey(input.workspaceName.trim(), tx as Prisma.TransactionClient),
       ownerId: owner.id,
     },
   });
@@ -190,6 +191,7 @@ export function toApiAdminWorkspace(workspace: WorkspaceRecord): AdminWorkspace 
     id: workspace.id,
     name: workspace.name,
     slug: workspace.slug,
+    inboundEmailKey: workspace.inboundEmailKey,
     ownerUserId: workspace.owner?.id ?? "",
     ownerName: workspace.owner?.name ?? "Unknown",
     ownerEmail: workspace.owner?.email ?? "",

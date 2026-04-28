@@ -229,6 +229,7 @@ export type AdminAppConfig = {
   resendApiKey: string;
   resendFromEmail: string;
   resendReplyToEmail: string;
+  emailInboundDomain: string;
   slackSigningSecret: string;
   slackDisableSignatureVerification: boolean;
   emailInboundToken: string;
@@ -238,6 +239,7 @@ export type AdminWorkspace = {
   id: string;
   name: string;
   slug: string;
+  inboundEmailKey: string;
   ownerUserId: string;
   ownerName: string;
   ownerEmail: string;

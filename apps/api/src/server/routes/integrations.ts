@@ -132,11 +132,14 @@ export function createIntegrationsRouter() {
       return;
     }
 
-    const workspaceId = await resolveCaptureWorkspaceId(input.workspaceSlug ?? request.header("x-timesmith-workspace"));
+    const recipient = input.to?.trim() || null;
+    const workspaceId = await resolveCaptureWorkspaceId(
+      input.workspaceSlug ?? request.header("x-timesmith-workspace"),
+      recipient,
+    );
     const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date();
     const body = input.text?.trim() || input.html?.trim() || "";
     const sender = input.from?.trim() || null;
-    const recipient = input.to?.trim() || null;
     const externalId = input.messageId?.trim() || crypto.randomUUID();
 
     const item = await upsertEmailCapturedItem({

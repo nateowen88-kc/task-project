@@ -24,6 +24,7 @@ function fromRecord(record: AppConfigRecord): AdminAppConfig {
     resendApiKey: normalizeString(record?.resendApiKey),
     resendFromEmail: normalizeString(record?.resendFromEmail),
     resendReplyToEmail: normalizeString(record?.resendReplyToEmail),
+    emailInboundDomain: normalizeString(record?.emailInboundDomain),
     slackSigningSecret: normalizeString(record?.slackSigningSecret),
     slackDisableSignatureVerification: Boolean(record?.slackDisableSignatureVerification),
     emailInboundToken: normalizeString(record?.emailInboundToken),
@@ -36,6 +37,7 @@ function defaultFromEnv(): AdminAppConfig {
     resendApiKey: normalizeString(process.env.RESEND_API_KEY),
     resendFromEmail: normalizeString(process.env.RESEND_FROM_EMAIL),
     resendReplyToEmail: normalizeString(process.env.RESEND_REPLY_TO_EMAIL),
+    emailInboundDomain: normalizeString(process.env.EMAIL_INBOUND_DOMAIN),
     slackSigningSecret: normalizeString(process.env.SLACK_SIGNING_SECRET),
     slackDisableSignatureVerification: process.env.SLACK_DISABLE_SIGNATURE_VERIFICATION === "true",
     emailInboundToken: normalizeString(process.env.EMAIL_INBOUND_TOKEN),
@@ -57,6 +59,7 @@ export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPaylo
     typeof input.resendApiKey === "string" &&
     typeof input.resendFromEmail === "string" &&
     typeof input.resendReplyToEmail === "string" &&
+    typeof input.emailInboundDomain === "string" &&
     typeof input.slackSigningSecret === "string" &&
     typeof input.slackDisableSignatureVerification === "boolean" &&
     typeof input.emailInboundToken === "string"
@@ -75,6 +78,7 @@ export async function updateAdminAppConfig(
       resendApiKey: nullableString(input.resendApiKey),
       resendFromEmail: nullableString(input.resendFromEmail),
       resendReplyToEmail: nullableString(input.resendReplyToEmail),
+      emailInboundDomain: nullableString(input.emailInboundDomain),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       emailInboundToken: nullableString(input.emailInboundToken),
@@ -84,6 +88,7 @@ export async function updateAdminAppConfig(
       resendApiKey: nullableString(input.resendApiKey),
       resendFromEmail: nullableString(input.resendFromEmail),
       resendReplyToEmail: nullableString(input.resendReplyToEmail),
+      emailInboundDomain: nullableString(input.emailInboundDomain),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       emailInboundToken: nullableString(input.emailInboundToken),

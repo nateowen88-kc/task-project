@@ -80,6 +80,7 @@ function createEmptyAppConfigForm(): AppConfigFormState {
     resendApiKey: "",
     resendFromEmail: "",
     resendReplyToEmail: "",
+    emailInboundDomain: "",
     slackSigningSecret: "",
     slackDisableSignatureVerification: false,
     emailInboundToken: "",

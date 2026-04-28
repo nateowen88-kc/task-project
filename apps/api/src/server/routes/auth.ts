@@ -15,6 +15,7 @@ import type {
 import {
   authOf,
   buildAuthContext,
+  createUniqueInboundEmailKey,
   clearSessionCookie,
   createSession,
   createUniqueWorkspaceSlug,
@@ -211,6 +212,7 @@ export function createAuthRouter() {
             data: {
               name: workspaceName,
               slug,
+              inboundEmailKey: legacy.inboundEmailKey ?? (await createUniqueInboundEmailKey(workspaceName, tx)),
               ownerId: createdUser.id,
             },
           });
@@ -219,6 +221,7 @@ export function createAuthRouter() {
             data: {
               name: workspaceName,
               slug: await createUniqueWorkspaceSlug(workspaceName, tx),
+              inboundEmailKey: await createUniqueInboundEmailKey(workspaceName, tx),
               ownerId: createdUser.id,
             },
           });
@@ -228,6 +231,7 @@ export function createAuthRouter() {
           data: {
             name: workspaceName,
             slug: await createUniqueWorkspaceSlug(workspaceName, tx),
+            inboundEmailKey: await createUniqueInboundEmailKey(workspaceName, tx),
             ownerId: createdUser.id,
           },
         });

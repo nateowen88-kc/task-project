@@ -4,6 +4,7 @@ import { Prisma, WorkspaceInviteRole, WorkspaceRole } from "@prisma/client";
 import { prisma } from "../lib/db.js";
 import {
   buildAuthContext,
+  createUniqueInboundEmailKey,
   clearSessionCookie,
   createSession,
   createUniqueWorkspaceSlug,
@@ -237,13 +238,19 @@ export default async function authHandler(request: NativeRequest, response: Nati
           const slug = await createUniqueWorkspaceSlug(workspaceName, tx);
           workspace = await tx.workspace.update({
             where: { id: legacy.id },
-            data: { name: workspaceName, slug, ownerId: createdUser.id },
+            data: {
+              name: workspaceName,
+              slug,
+              inboundEmailKey: legacy.inboundEmailKey ?? (await createUniqueInboundEmailKey(workspaceName, tx)),
+              ownerId: createdUser.id,
+            },
           });
         } else {
           workspace = await tx.workspace.create({
             data: {
               name: workspaceName,
               slug: await createUniqueWorkspaceSlug(workspaceName, tx),
+              inboundEmailKey: await createUniqueInboundEmailKey(workspaceName, tx),
               ownerId: createdUser.id,
             },
           });
@@ -253,6 +260,7 @@ export default async function authHandler(request: NativeRequest, response: Nati
           data: {
             name: workspaceName,
             slug: await createUniqueWorkspaceSlug(workspaceName, tx),
+            inboundEmailKey: await createUniqueInboundEmailKey(workspaceName, tx),
             ownerId: createdUser.id,
           },
         });

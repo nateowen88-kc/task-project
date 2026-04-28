@@ -99,6 +99,7 @@ model AppConfig {
   resendApiKey                       String?
   resendFromEmail                    String?
   resendReplyToEmail                 String?
+  emailInboundDomain                 String?
   slackSigningSecret                 String?
   slackDisableSignatureVerification  Boolean  @default(false)
   emailInboundToken                  String?
@@ -110,6 +111,7 @@ model Workspace {
   id            String            @id @default(cuid())
   name          String
   slug          String            @unique
+  inboundEmailKey String          @unique
   ownerId       String?
   deactivatedAt DateTime?
   allowMemberTaskCreation Boolean @default(true)
