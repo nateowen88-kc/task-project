@@ -650,6 +650,37 @@ export function AdminView({
               </label>
 
               <label>
+                Outlook client ID
+                <input
+                  value={appConfigForm.outlookClientId}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, outlookClientId: event.target.value }))}
+                  autoComplete="off"
+                />
+              </label>
+
+              <label>
+                Outlook client secret
+                <input
+                  type="password"
+                  value={appConfigForm.outlookClientSecret}
+                  onChange={(event) =>
+                    onAppConfigFormChange((current) => ({ ...current, outlookClientSecret: event.target.value }))
+                  }
+                  autoComplete="off"
+                />
+              </label>
+
+              <label>
+                Outlook tenant ID
+                <input
+                  value={appConfigForm.outlookTenantId}
+                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, outlookTenantId: event.target.value }))}
+                  placeholder="common"
+                  autoComplete="off"
+                />
+              </label>
+
+              <label>
                 Slack signing secret
                 <input
                   type="password"

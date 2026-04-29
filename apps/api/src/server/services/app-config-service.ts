@@ -25,6 +25,9 @@ function fromRecord(record: AppConfigRecord): AdminAppConfig {
     resendFromEmail: normalizeString(record?.resendFromEmail),
     resendReplyToEmail: normalizeString(record?.resendReplyToEmail),
     emailInboundDomain: normalizeString(record?.emailInboundDomain),
+    outlookClientId: normalizeString(record?.outlookClientId),
+    outlookClientSecret: normalizeString(record?.outlookClientSecret),
+    outlookTenantId: normalizeString(record?.outlookTenantId),
     slackSigningSecret: normalizeString(record?.slackSigningSecret),
     slackDisableSignatureVerification: Boolean(record?.slackDisableSignatureVerification),
     emailInboundToken: normalizeString(record?.emailInboundToken),
@@ -38,6 +41,9 @@ function defaultFromEnv(): AdminAppConfig {
     resendFromEmail: normalizeString(process.env.RESEND_FROM_EMAIL),
     resendReplyToEmail: normalizeString(process.env.RESEND_REPLY_TO_EMAIL),
     emailInboundDomain: normalizeString(process.env.EMAIL_INBOUND_DOMAIN),
+    outlookClientId: normalizeString(process.env.OUTLOOK_CLIENT_ID),
+    outlookClientSecret: normalizeString(process.env.OUTLOOK_CLIENT_SECRET),
+    outlookTenantId: normalizeString(process.env.OUTLOOK_TENANT_ID),
     slackSigningSecret: normalizeString(process.env.SLACK_SIGNING_SECRET),
     slackDisableSignatureVerification: process.env.SLACK_DISABLE_SIGNATURE_VERIFICATION === "true",
     emailInboundToken: normalizeString(process.env.EMAIL_INBOUND_TOKEN),
@@ -60,6 +66,9 @@ export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPaylo
     typeof input.resendFromEmail === "string" &&
     typeof input.resendReplyToEmail === "string" &&
     typeof input.emailInboundDomain === "string" &&
+    typeof input.outlookClientId === "string" &&
+    typeof input.outlookClientSecret === "string" &&
+    typeof input.outlookTenantId === "string" &&
     typeof input.slackSigningSecret === "string" &&
     typeof input.slackDisableSignatureVerification === "boolean" &&
     typeof input.emailInboundToken === "string"
@@ -79,6 +88,9 @@ export async function updateAdminAppConfig(
       resendFromEmail: nullableString(input.resendFromEmail),
       resendReplyToEmail: nullableString(input.resendReplyToEmail),
       emailInboundDomain: nullableString(input.emailInboundDomain),
+      outlookClientId: nullableString(input.outlookClientId),
+      outlookClientSecret: nullableString(input.outlookClientSecret),
+      outlookTenantId: nullableString(input.outlookTenantId),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       emailInboundToken: nullableString(input.emailInboundToken),
@@ -89,6 +101,9 @@ export async function updateAdminAppConfig(
       resendFromEmail: nullableString(input.resendFromEmail),
       resendReplyToEmail: nullableString(input.resendReplyToEmail),
       emailInboundDomain: nullableString(input.emailInboundDomain),
+      outlookClientId: nullableString(input.outlookClientId),
+      outlookClientSecret: nullableString(input.outlookClientSecret),
+      outlookTenantId: nullableString(input.outlookTenantId),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       emailInboundToken: nullableString(input.emailInboundToken),

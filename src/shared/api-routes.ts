@@ -60,5 +60,10 @@ export const API_ROUTES = {
     slackInteractions: "/api/integrations/slack/interactions",
     slackCommands: "/api/integrations/slack/commands",
     emailInbound: "/api/integrations/email/inbound",
+    outlookStatus: "/api/integrations/outlook/status",
+    outlookConnect: "/api/integrations/outlook/connect",
+    outlookCallback: "/api/integrations/outlook/callback",
+    outlookEvents: "/api/integrations/outlook/events",
+    outlookConnection: "/api/integrations/outlook/connection",
   },
 } as const;

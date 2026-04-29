@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { fetchInvite, fetchSession, type WorkspaceInviteLookup } from "./api";
+import {
+  disconnectOutlookCalendar,
+  fetchInvite,
+  fetchOutlookCalendarEvents,
+  fetchOutlookCalendarStatus,
+  fetchSession,
+  getOutlookConnectUrl,
+  type OutlookCalendarEvent,
+  type OutlookCalendarStatus,
+  type WorkspaceInviteLookup,
+} from "./api";
 import { AgendaView } from "./features/agenda/AgendaView";
 import { SideRail } from "./features/layout/SideRail";
 import { InboxView } from "./features/inbox/InboxView";
@@ -42,6 +52,9 @@ import { formatDueLabel, formatReminderLabel } from "./lib/formatters";
 
 export default function App() {
   const [error, setError] = useState<string | null>(null);
+  const [outlookStatus, setOutlookStatus] = useState<OutlookCalendarStatus | null>(null);
+  const [outlookEvents, setOutlookEvents] = useState<OutlookCalendarEvent[]>([]);
+  const [isOutlookLoading, setIsOutlookLoading] = useState(false);
   const {
     session,
     adminUsers,
@@ -297,6 +310,29 @@ export default function App() {
       ? taskDetail?.task.permissions ?? tasks.find((task) => task.id === editingId)?.permissions ?? null
       : null;
 
+  const formatCalendarEventRange = useCallback((event: OutlookCalendarEvent) => {
+    if (event.isAllDay) {
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        weekday: "short",
+      }).format(new Date(event.startsAt));
+    }
+
+    const formatter = new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      weekday: "short",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+
+    return `${formatter.format(new Date(event.startsAt))} - ${new Intl.DateTimeFormat(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(event.endsAt))}`;
+  }, []);
+
   useEffect(() => {
     if (!session || hasLoadedTasks) {
       return;
@@ -312,6 +348,55 @@ export default function App() {
 
     void refreshAppData(session, { agenda: true });
   }, [activeView, hasLoadedAgenda, isAllWorkspacesMode, refreshAppData, session]);
+
+  useEffect(() => {
+    if (!session || activeView !== "agenda" || isAllWorkspacesMode) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    async function loadOutlookCalendar() {
+      try {
+        setIsOutlookLoading(true);
+        const status = await fetchOutlookCalendarStatus();
+        if (isCancelled) {
+          return;
+        }
+
+        setOutlookStatus(status);
+
+        if (!status.isConnected) {
+          setOutlookEvents([]);
+          return;
+        }
+
+        const start = new Date();
+        const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const events = await fetchOutlookCalendarEvents(start.toISOString(), end.toISOString());
+
+        if (!isCancelled) {
+          setOutlookEvents(events);
+        }
+      } catch (calendarError) {
+        if (!isCancelled) {
+          setOutlookStatus(null);
+          setOutlookEvents([]);
+          setError(calendarError instanceof Error ? calendarError.message : "Could not load Outlook calendar.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsOutlookLoading(false);
+        }
+      }
+    }
+
+    void loadOutlookCalendar();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeView, isAllWorkspacesMode, session]);
 
   useEffect(() => {
     if (!session || activeView !== "inbox" || hasLoadedCapturedItems) {
@@ -373,6 +458,20 @@ export default function App() {
 
   useEffect(() => {
     if (session) {
+      const params = new URLSearchParams(window.location.search);
+      const calendar = params.get("calendar");
+      const calendarDetail = params.get("calendarDetail");
+      if (calendar) {
+        setActiveView("agenda");
+        if (calendar === "error") {
+          setError(calendarDetail ? `Outlook calendar connection failed: ${calendarDetail}.` : "Outlook calendar connection failed.");
+        }
+        params.delete("calendar");
+        params.delete("calendarDetail");
+        const nextQuery = params.toString();
+        const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash}`;
+        window.history.replaceState({}, "", nextUrl);
+      }
       setInviteLookup(null);
       setResetToken(null);
       return;
@@ -423,6 +522,32 @@ export default function App() {
         onSubmit={handleAuthSubmit}
       />
     );
+  }
+
+  function handleConnectOutlookCalendar() {
+    window.location.assign(getOutlookConnectUrl());
+  }
+
+  async function handleDisconnectOutlookCalendar() {
+    try {
+      setIsOutlookLoading(true);
+      await disconnectOutlookCalendar();
+      setOutlookStatus((current) =>
+        current
+          ? {
+              ...current,
+              isConnected: false,
+              accountEmail: null,
+              expiresAt: null,
+            }
+          : null,
+      );
+      setOutlookEvents([]);
+    } catch (disconnectError) {
+      setError(disconnectError instanceof Error ? disconnectError.message : "Could not disconnect Outlook calendar.");
+    } finally {
+      setIsOutlookLoading(false);
+    }
   }
 
   return (
@@ -513,11 +638,17 @@ export default function App() {
               agendaSections={agendaSections}
               promotedCount={promotedCount}
               isAgendaRefreshing={isAgendaRefreshing}
+              outlookStatus={outlookStatus}
+              outlookEvents={outlookEvents}
+              isOutlookLoading={isOutlookLoading}
               focusedItemKey={focusedItemKey}
               getItemWorkspaceLabel={getItemWorkspaceLabel}
               formatDueLabel={formatDueLabel}
               formatReminderLabel={formatReminderLabel}
               getTodayReason={getTodayReason}
+              formatCalendarEventRange={formatCalendarEventRange}
+              onConnectOutlookCalendar={handleConnectOutlookCalendar}
+              onDisconnectOutlookCalendar={() => void handleDisconnectOutlookCalendar()}
               onGenerateAgenda={() => void handleGenerateAgenda()}
               onFocus={startFocus}
               onOpenTask={handleOpenAgendaTask}

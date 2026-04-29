@@ -5,6 +5,7 @@ export * from "./tasks";
 export * from "./agenda";
 export * from "./captured-items";
 export * from "./notifications";
+export * from "./outlook";
 
 import {
   GOD_USER_EMAIL,
