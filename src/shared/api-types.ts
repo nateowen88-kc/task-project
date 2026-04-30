@@ -229,6 +229,8 @@ export type OneOnOneMeeting = {
   status: OneOnOneMeetingStatus;
   sharedNotes: string;
   privateNotes: string;
+  priorActionItems: string[];
+  nextActionItems: string[];
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -279,6 +281,12 @@ export type UpdateOneOnOneAgendaItemPayload = {
 
 export type CreateOneOnOneMeetingPayload = {
   scheduledFor: string;
+};
+
+export type CompleteOneOnOneMeetingPayload = {
+  scheduledFor: string;
+  meetingDetails: string;
+  nextActionItems: string[];
 };
 
 export type UpdateOneOnOneMeetingPayload = {

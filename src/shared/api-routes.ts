@@ -50,6 +50,7 @@ export const API_ROUTES = {
     agendaItems: (reportId: string) => `/api/one-on-ones/reports/${reportId}/agenda-items`,
     agendaItem: (id: string) => `/api/one-on-ones/agenda-items/${id}`,
     meetings: (reportId: string) => `/api/one-on-ones/reports/${reportId}/meetings`,
+    completeMeeting: (reportId: string) => `/api/one-on-ones/reports/${reportId}/meetings/complete`,
     meeting: (id: string) => `/api/one-on-ones/meetings/${id}`,
   },
   capturedItems: {

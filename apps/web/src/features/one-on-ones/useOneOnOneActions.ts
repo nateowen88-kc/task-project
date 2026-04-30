@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import type { DirectReport, OneOnOneCadence } from "../../api";
 import {
+  completeOneOnOneMeeting,
   createDirectReport,
   createOneOnOneAgendaItem,
   createOneOnOneMeeting,
@@ -53,6 +54,7 @@ export function useOneOnOneActions({
   const [deletingMeetingId, setDeletingMeetingId] = useState<string | null>(null);
   const [creatingAgendaForReportId, setCreatingAgendaForReportId] = useState<string | null>(null);
   const [creatingMeetingForReportId, setCreatingMeetingForReportId] = useState<string | null>(null);
+  const [completingMeetingForReportId, setCompletingMeetingForReportId] = useState<string | null>(null);
 
   useEffect(() => {
     if (directReports.length === 0) {
@@ -232,6 +234,36 @@ export function useOneOnOneActions({
     }
   }
 
+  async function handleCompleteMeeting(
+    reportId: string,
+    scheduledFor: string,
+    meetingDetails: string,
+    nextActionItems: string[],
+  ) {
+    if (!scheduledFor.trim()) {
+      onError("Meeting date and time are required.");
+      return;
+    }
+
+    try {
+      setCompletingMeetingForReportId(reportId);
+      onError(null);
+      const updated = await completeOneOnOneMeeting(reportId, {
+        scheduledFor,
+        meetingDetails,
+        nextActionItems,
+      });
+      setDirectReports((current) =>
+        current.map((report) => (report.id === reportId ? updated : report)),
+      );
+      setSelectedReportId(reportId);
+    } catch (error) {
+      onError(toErrorMessage(error, "Could not create 1:1."));
+    } finally {
+      setCompletingMeetingForReportId(null);
+    }
+  }
+
   async function handleUpdateMeeting(
     meetingId: string,
     reportId: string,
@@ -299,6 +331,7 @@ export function useOneOnOneActions({
     deletingMeetingId,
     creatingAgendaForReportId,
     creatingMeetingForReportId,
+    completingMeetingForReportId,
     handleCreateReport,
     handleSaveReport,
     handleDeleteReport,
@@ -306,6 +339,7 @@ export function useOneOnOneActions({
     handleUpdateAgendaItem,
     handleDeleteAgendaItem,
     handleCreateMeeting,
+    handleCompleteMeeting,
     handleUpdateMeeting,
     handleDeleteMeeting,
   };

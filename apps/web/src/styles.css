@@ -1185,6 +1185,16 @@ a {
   color: rgba(31, 42, 51, 0.82);
 }
 
+.detail-list-inline {
+  margin: 0.6rem 0 0;
+  padding-left: 1.1rem;
+  color: rgba(31, 42, 51, 0.82);
+}
+
+.detail-list-inline li + li {
+  margin-top: 0.3rem;
+}
+
 .admin-detail-list {
   max-height: none;
   overflow: visible;

@@ -1,0 +1,5 @@
+ALTER TABLE "OneOnOneMeeting"
+ADD COLUMN "priorActionItems" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+
+ALTER TABLE "OneOnOneMeeting"
+ADD COLUMN "nextActionItems" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

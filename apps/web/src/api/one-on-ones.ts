@@ -1,6 +1,7 @@
 import { API_ROUTES } from "../../../../src/shared/api-routes";
 import { request } from "./client";
 import type {
+  CompleteOneOnOneMeetingPayload,
   CreateDirectReportPayload,
   CreateOneOnOneAgendaItemPayload,
   CreateOneOnOneMeetingPayload,
@@ -63,6 +64,13 @@ function createOneOnOneMeeting(reportId: string, payload: CreateOneOnOneMeetingP
   });
 }
 
+function completeOneOnOneMeeting(reportId: string, payload: CompleteOneOnOneMeetingPayload) {
+  return request<DirectReport>(API_ROUTES.oneOnOnes.completeMeeting(reportId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 function updateOneOnOneMeeting(id: string, payload: UpdateOneOnOneMeetingPayload) {
   return request<OneOnOneMeeting>(API_ROUTES.oneOnOnes.meeting(id), {
     method: "PUT",
@@ -79,6 +87,7 @@ async function deleteOneOnOneMeeting(id: string) {
 export {
   createDirectReport,
   createOneOnOneAgendaItem,
+  completeOneOnOneMeeting,
   createOneOnOneMeeting,
   deleteDirectReport,
   deleteOneOnOneAgendaItem,

@@ -357,6 +357,8 @@ model OneOnOneMeeting {
   status         OneOnOneMeetingStatus @default(SCHEDULED)
   sharedNotes    String                @default("")
   privateNotes   String                @default("")
+  priorActionItems String[]            @default([])
+  nextActionItems  String[]            @default([])
   completedAt    DateTime?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @default(now()) @updatedAt

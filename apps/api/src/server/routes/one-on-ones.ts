@@ -59,16 +59,35 @@ function toApiDirectReport(
     meetings: report.meetings
       .slice()
       .sort((left, right) => right.scheduledFor.getTime() - left.scheduledFor.getTime())
-      .map((meeting) => ({
-        id: meeting.id,
-        scheduledFor: meeting.scheduledFor.toISOString(),
-        status: reverseMeetingStatusMap[meeting.status],
-        sharedNotes: meeting.sharedNotes,
-        privateNotes: meeting.privateNotes,
-        completedAt: meeting.completedAt ? meeting.completedAt.toISOString() : null,
-        createdAt: meeting.createdAt.toISOString(),
-        updatedAt: meeting.updatedAt.toISOString(),
-      })),
+      .map((meeting) => toApiMeeting(meeting)),
+  };
+}
+
+function toApiMeeting(
+  meeting: {
+    id: string;
+    scheduledFor: Date;
+    status: OneOnOneMeetingStatus;
+    sharedNotes: string;
+    privateNotes: string;
+    priorActionItems: string[];
+    nextActionItems: string[];
+    completedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  },
+) {
+  return {
+    id: meeting.id,
+    scheduledFor: meeting.scheduledFor.toISOString(),
+    status: reverseMeetingStatusMap[meeting.status],
+    sharedNotes: meeting.sharedNotes,
+    privateNotes: meeting.privateNotes,
+    priorActionItems: meeting.priorActionItems,
+    nextActionItems: meeting.nextActionItems,
+    completedAt: meeting.completedAt ? meeting.completedAt.toISOString() : null,
+    createdAt: meeting.createdAt.toISOString(),
+    updatedAt: meeting.updatedAt.toISOString(),
   };
 }
 
@@ -99,6 +118,37 @@ function isValidCadence(value: string): value is keyof typeof cadenceMap {
 
 function isValidMeetingStatus(value: string): value is keyof typeof meetingStatusMap {
   return value in meetingStatusMap;
+}
+
+function normalizeActionItems(input: unknown) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter((value) => value.length > 0);
+}
+
+function computeNextMeetingAt(currentMeetingAt: Date, cadence: OneOnOneCadence) {
+  const nextMeetingAt = new Date(currentMeetingAt);
+
+  if (cadence === OneOnOneCadence.WEEKLY) {
+    nextMeetingAt.setDate(nextMeetingAt.getDate() + 7);
+    return nextMeetingAt;
+  }
+
+  if (cadence === OneOnOneCadence.BIWEEKLY) {
+    nextMeetingAt.setDate(nextMeetingAt.getDate() + 14);
+    return nextMeetingAt;
+  }
+
+  if (cadence === OneOnOneCadence.MONTHLY) {
+    nextMeetingAt.setMonth(nextMeetingAt.getMonth() + 1);
+    return nextMeetingAt;
+  }
+
+  return null;
 }
 
 export function createOneOnOnesRouter() {
@@ -339,16 +389,87 @@ export function createOneOnOnesRouter() {
       data: { nextMeetingAt: meeting.scheduledFor },
     });
 
-    response.status(201).json({
-      id: meeting.id,
-      scheduledFor: meeting.scheduledFor.toISOString(),
-      status: reverseMeetingStatusMap[meeting.status],
-      sharedNotes: meeting.sharedNotes,
-      privateNotes: meeting.privateNotes,
-      completedAt: meeting.completedAt ? meeting.completedAt.toISOString() : null,
-      createdAt: meeting.createdAt.toISOString(),
-      updatedAt: meeting.updatedAt.toISOString(),
+    response.status(201).json(toApiMeeting(meeting));
+  });
+
+  router.post("/api/one-on-ones/reports/:id/meetings/complete", async (request, response) => {
+    const auth = authOf(request);
+    const existing = await fetchOwnedReportOrNull(request.params.id, auth.workspace.id, auth.user.id);
+    if (!existing) {
+      response.status(404).json({ error: "Direct report not found." });
+      return;
+    }
+
+    const input = request.body as {
+      scheduledFor?: string;
+      meetingDetails?: string;
+      nextActionItems?: unknown;
+    };
+    if (typeof input.scheduledFor !== "string" || !input.scheduledFor.trim() || typeof input.meetingDetails !== "string") {
+      response.status(400).json({ error: "Invalid 1:1 payload." });
+      return;
+    }
+
+    const scheduledFor = new Date(input.scheduledFor);
+    if (Number.isNaN(scheduledFor.getTime())) {
+      response.status(400).json({ error: "Scheduled time is invalid." });
+      return;
+    }
+
+    const meetingDetails = input.meetingDetails.trim();
+    const nextActionItems = normalizeActionItems(input.nextActionItems);
+
+    const updatedReport = await prisma.$transaction(async (tx) => {
+      const priorItems = await tx.oneOnOneAgendaItem.findMany({
+        where: {
+          directReportId: existing.id,
+          completedAt: null,
+        },
+        orderBy: { sortOrder: "asc" },
+      });
+
+      await tx.oneOnOneMeeting.create({
+        data: {
+          workspaceId: auth.workspace.id,
+          directReportId: existing.id,
+          scheduledFor,
+          status: OneOnOneMeetingStatus.COMPLETED,
+          sharedNotes: meetingDetails,
+          priorActionItems: priorItems.map((item) => item.body),
+          nextActionItems,
+          completedAt: new Date(),
+        },
+      });
+
+      await tx.oneOnOneAgendaItem.deleteMany({
+        where: { directReportId: existing.id },
+      });
+
+      if (nextActionItems.length > 0) {
+        await tx.oneOnOneAgendaItem.createMany({
+          data: nextActionItems.map((body, index) => ({
+            directReportId: existing.id,
+            body,
+            isPrivate: true,
+            sortOrder: index,
+          })),
+        });
+      }
+
+      await tx.directReport.update({
+        where: { id: existing.id },
+        data: {
+          nextMeetingAt: computeNextMeetingAt(scheduledFor, existing.cadence),
+        },
+      });
+
+      return tx.directReport.findFirstOrThrow({
+        where: { id: existing.id },
+        include: { standingItems: true, meetings: true },
+      });
     });
+
+    response.status(201).json(toApiDirectReport(updatedReport));
   });
 
   router.put("/api/one-on-ones/meetings/:id", async (request, response) => {
@@ -398,16 +519,7 @@ export function createOneOnOnesRouter() {
       },
     });
 
-    response.json({
-      id: meeting.id,
-      scheduledFor: meeting.scheduledFor.toISOString(),
-      status: reverseMeetingStatusMap[meeting.status],
-      sharedNotes: meeting.sharedNotes,
-      privateNotes: meeting.privateNotes,
-      completedAt: meeting.completedAt ? meeting.completedAt.toISOString() : null,
-      createdAt: meeting.createdAt.toISOString(),
-      updatedAt: meeting.updatedAt.toISOString(),
-    });
+    response.json(toApiMeeting(meeting));
   });
 
   router.delete("/api/one-on-ones/meetings/:id", async (request, response) => {
