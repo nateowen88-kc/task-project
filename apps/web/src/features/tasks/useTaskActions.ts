@@ -172,7 +172,22 @@ export function useTaskActions({
 
     try {
       setIsDetailLoading(true);
-      setTaskDetail(await fetchTaskDetail(task.id));
+      const detail = await fetchTaskDetail(task.id);
+      setTaskDetail(detail);
+      if (detail) {
+        setDraft({
+          title: detail.task.title,
+          details: detail.task.details,
+          links: detail.task.links.join("\n"),
+          dueDate: detail.task.dueDate,
+          remindAt: toDateTimeLocal(detail.task.remindAt),
+          status: detail.task.status,
+          assigneeId: detail.task.assigneeId ?? "",
+          isRecurring: detail.task.isRecurring,
+          recurrenceRule: detail.task.recurrenceRule === "none" ? "daily" : detail.task.recurrenceRule,
+          importance: detail.task.importance,
+        });
+      }
     } catch (error) {
       onError(toErrorMessage(error, "Could not load task discussion."));
     } finally {

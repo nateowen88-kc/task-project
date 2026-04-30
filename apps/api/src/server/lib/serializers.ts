@@ -24,6 +24,7 @@ export type ApiTask = {
   id: string;
   title: string;
   details: string;
+  isPrivate: boolean;
   dueDate: string;
   remindAt: string | null;
   status: StatusValue;
@@ -56,6 +57,7 @@ export type ApiTodayItem = {
   sourceType: TodaySourceType;
   title: string;
   details: string;
+  isPrivate: boolean;
   dueDate: string;
   scheduledFor: string;
   remindAt: string | null;
@@ -338,11 +340,14 @@ export const reverseNotificationTypeMap: Record<NotificationTypeDb, Notification
 export function toApiTask(
   task: TaskRecord,
   permissions: ApiTask["permissions"],
+  options?: { redactPrivateDetails?: boolean },
 ): ApiTask {
+  const shouldRedactPrivateDetails = Boolean(options?.redactPrivateDetails && task.isPrivate);
   return {
     id: task.id,
     title: task.title,
-    details: task.details,
+    details: shouldRedactPrivateDetails ? "" : task.details,
+    isPrivate: task.isPrivate,
     dueDate: formatDate(task.dueDate),
     remindAt: formatDateTime(task.remindAt),
     status: reverseStatusMap[task.status],
@@ -368,12 +373,14 @@ export function toApiTodayTask(
   permissions: ApiTodayItem["permissions"],
   aiMetadata?: { reason: string; confidence: number },
 ): ApiTodayItem {
+  const shouldRedactPrivateDetails = task.isPrivate;
   return {
     id: task.id,
     taskId: task.id,
     sourceType: "task",
     title: task.title,
-    details: task.details,
+    details: shouldRedactPrivateDetails ? "" : task.details,
+    isPrivate: task.isPrivate,
     dueDate: formatDate(task.dueDate),
     scheduledFor: task.plannedForDate ? formatDate(task.plannedForDate) : formatDate(task.dueDate),
     remindAt: formatDateTime(task.remindAt),
@@ -447,12 +454,14 @@ export function toApiTodayOccurrence(
   occurrence: OccurrenceRecord,
   permissions: ApiTodayItem["permissions"],
 ): ApiTodayItem {
+  const shouldRedactPrivateDetails = occurrence.task.isPrivate;
   return {
     id: occurrence.id,
     taskId: occurrence.taskId,
     sourceType: "occurrence",
     title: occurrence.task.title,
-    details: occurrence.task.details,
+    details: shouldRedactPrivateDetails ? "" : occurrence.task.details,
+    isPrivate: occurrence.task.isPrivate,
     dueDate: formatDate(occurrence.dueDate),
     scheduledFor: formatDate(occurrence.scheduledFor),
     remindAt: formatDateTime(occurrence.task.remindAt),

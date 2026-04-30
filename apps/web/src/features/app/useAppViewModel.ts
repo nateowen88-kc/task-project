@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { CapturedItem, Notification, Task, TodayItem } from "../../api";
 import { getAgendaBucket, getAgendaScore } from "../agenda/utils";
 
-type AppView = "workflow" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
+type AppView = "workflow" | "team" | "one-on-ones" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
 
 type UseAppViewModelOptions = {
   tasks: Task[];

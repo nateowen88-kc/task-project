@@ -220,12 +220,14 @@ model Task {
   workspaceId     String
   createdById     String?
   assigneeId      String?
+  directReportId  String?
   title          String
   details        String           @default("")
   dueDate        DateTime
   remindAt       DateTime?
   status         TaskStatus       @default(TODO)
   importance     TaskImportance   @default(MEDIUM)
+  isPrivate      Boolean          @default(false)
   sortOrder      Int              @default(0)
   isRecurring    Boolean          @default(false)
   recurrenceRule RecurrenceRule?
@@ -238,6 +240,7 @@ model Task {
   workspace      Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdBy      User?            @relation("TaskCreator", fields: [createdById], references: [id], onDelete: SetNull)
   assignee       User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  directReport   DirectReport?    @relation(fields: [directReportId], references: [id], onDelete: SetNull)
   links          TaskLink[]
   occurrences    TaskOccurrence[]
   capturedItems  CapturedItem[]
@@ -249,6 +252,7 @@ model Task {
   @@index([workspaceId, dueDate, status])
   @@index([workspaceId, status, sortOrder])
   @@index([workspaceId, plannedForDate, status])
+  @@index([directReportId, status])
   @@index([dueDate, status])
   @@index([status, sortOrder])
   @@index([plannedForDate, status])
@@ -331,6 +335,7 @@ model DirectReport {
   manager        User                @relation("DirectReportManager", fields: [managerUserId], references: [id], onDelete: Cascade)
   standingItems  OneOnOneAgendaItem[]
   meetings       OneOnOneMeeting[]
+  tasks          Task[]
 
   @@index([workspaceId, managerUserId, nextMeetingAt])
 }

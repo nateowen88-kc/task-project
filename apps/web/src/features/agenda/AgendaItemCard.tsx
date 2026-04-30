@@ -87,7 +87,13 @@ export function AgendaItemCard({
       </div>
 
       <h3>{item.title}</h3>
-      {item.details ? <p>{item.details}</p> : <p>No additional notes yet.</p>}
+      {item.details ? (
+        <p>{item.details}</p>
+      ) : item.isPrivate ? (
+        <p>Private details hidden until you open the task.</p>
+      ) : (
+        <p>No additional notes yet.</p>
+      )}
       {item.agendaReason && (
         <div
           style={{
@@ -113,6 +119,7 @@ export function AgendaItemCard({
         <span>Due: {formatDueLabel(item.dueDate)}</span>
         <span>{formatReminderLabel(item.remindAt)}</span>
         <span>Importance: {IMPORTANCE_LABELS[item.importance]}</span>
+        {item.isPrivate && <span>Private</span>}
         <span>Assignee: {item.assigneeName ?? "Unassigned"}</span>
         {item.isRecurring && <span>{RECURRENCE_LABELS[item.recurrenceRule]}</span>}
       </div>

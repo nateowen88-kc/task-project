@@ -25,6 +25,7 @@ import { InboxView } from "./features/inbox/InboxView";
 import { NotificationsView } from "./features/notifications/NotificationsView";
 import { AdminView } from "./features/admin/AdminView";
 import { OneOnOnesView } from "./features/one-on-ones/OneOnOnesView";
+import { TeamView } from "./features/team/TeamView";
 import {
   AppView,
   VIEW_ICONS,
@@ -452,7 +453,7 @@ export default function App() {
   }, [activeView, hasLoadedNotifications, refreshAppData, session]);
 
   useEffect(() => {
-    if (!session || activeView !== "one-on-ones") {
+    if (!session || (activeView !== "one-on-ones" && activeView !== "team")) {
       return;
     }
 
@@ -504,7 +505,7 @@ export default function App() {
     if (
       !session ||
       !canCreateWorkspaces ||
-      (activeView !== "admin" && activeView !== "one-on-ones")
+      (activeView !== "admin" && activeView !== "one-on-ones" && activeView !== "team")
     ) {
       return;
     }
@@ -811,12 +812,21 @@ export default function App() {
             />
           )}
 
-          {activeView === "one-on-ones" && (
-            <OneOnOnesView
+          {activeView === "team" && (
+            <TeamView
               directReports={directReports}
               setDirectReports={setDirectReports}
               directReportNameOptions={appConfigForm.directReportNameOptions}
               directReportRoleOptions={appConfigForm.directReportRoleOptions}
+              todayBadge={todayBadge}
+              onError={setError}
+            />
+          )}
+
+          {activeView === "one-on-ones" && (
+            <OneOnOnesView
+              directReports={directReports}
+              setDirectReports={setDirectReports}
               todayBadge={todayBadge}
               onError={setError}
             />

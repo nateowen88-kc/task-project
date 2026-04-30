@@ -1,18 +1,11 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { DirectReport, OneOnOneCadence, OneOnOneMeetingStatus } from "../../api";
+import type { DirectReport, OneOnOneMeetingStatus } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
 import { useOneOnOneActions } from "./useOneOnOneActions";
-
-const cadenceOptions: Array<{ value: OneOnOneCadence; label: string }> = [
-  { value: "weekly", label: "Weekly" },
-  { value: "biweekly", label: "Biweekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "ad-hoc", label: "Ad hoc" },
-];
 
 const meetingStatusOptions: Array<{ value: OneOnOneMeetingStatus; label: string }> = [
   { value: "scheduled", label: "Scheduled" },
@@ -28,50 +21,23 @@ function toLocalDateTime(value: string | null) {
   return new Date(value).toISOString().slice(0, 16);
 }
 
-function includeCurrentOption(options: Array<{ value: string; label: string }>, currentValue: string) {
-  const normalized = currentValue.trim();
-  if (!normalized || options.some((option) => option.value === normalized)) {
-    return options;
-  }
-
-  return [{ value: normalized, label: normalized }, ...options];
-}
-
 export function OneOnOnesView({
   directReports,
   setDirectReports,
-  directReportNameOptions,
-  directReportRoleOptions,
   todayBadge,
   onError,
 }: {
   directReports: DirectReport[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
-  directReportNameOptions: string[];
-  directReportRoleOptions: string[];
   todayBadge: { month: string; day: number; weekday: string };
   onError: (message: string | null) => void;
 }) {
   const {
     selectedReportId,
     setSelectedReportId,
-    createForm,
-    setCreateForm,
-    isCreatingReport,
-    savingReportId,
-    deletingReportId,
-    savingAgendaItemId,
-    deletingAgendaItemId,
     savingMeetingId,
     deletingMeetingId,
-    creatingAgendaForReportId,
     completingMeetingForReportId,
-    handleCreateReport,
-    handleSaveReport,
-    handleDeleteReport,
-    handleCreateAgendaItem,
-    handleUpdateAgendaItem,
-    handleDeleteAgendaItem,
     handleCompleteMeeting,
     handleUpdateMeeting,
     handleDeleteMeeting,
@@ -81,46 +47,15 @@ export function OneOnOnesView({
     onError,
   });
 
-  const selectedReport = useMemo(
-    () => directReports.find((report) => report.id === selectedReportId) ?? null,
-    [directReports, selectedReportId],
-  );
-
-  const [reportDraft, setReportDraft] = useState({
-    reportName: "",
-    reportEmail: "",
-    role: "",
-    cadence: "weekly" as OneOnOneCadence,
-    nextMeetingAt: "",
-    notes: "",
-  });
-  const [agendaDraft, setAgendaDraft] = useState("");
-  const [agendaIsPrivate, setAgendaIsPrivate] = useState(true);
-  const [newMeetingReportId, setNewMeetingReportId] = useState("");
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [newMeetingScheduledFor, setNewMeetingScheduledFor] = useState("");
   const [newMeetingDetails, setNewMeetingDetails] = useState("");
   const [newMeetingNextActions, setNewMeetingNextActions] = useState("");
   const [meetingDrafts, setMeetingDrafts] = useState<
     Record<string, { scheduledFor: string; status: OneOnOneMeetingStatus; sharedNotes: string; privateNotes: string }>
   >({});
-  const isDirectReportConfigReady = directReportNameOptions.length > 0 && directReportRoleOptions.length > 0;
-  const directReportNameSelectOptions = useMemo(
-    () => directReportNameOptions.map((value) => ({ value, label: value })),
-    [directReportNameOptions],
-  );
-  const directReportRoleSelectOptions = useMemo(
-    () => directReportRoleOptions.map((value) => ({ value, label: value })),
-    [directReportRoleOptions],
-  );
-  const reportDraftNameOptions = useMemo(
-    () => includeCurrentOption(directReportNameSelectOptions, reportDraft.reportName),
-    [directReportNameSelectOptions, reportDraft.reportName],
-  );
-  const reportDraftRoleOptions = useMemo(
-    () => includeCurrentOption(directReportRoleSelectOptions, reportDraft.role),
-    [directReportRoleSelectOptions, reportDraft.role],
-  );
-  const directReportSelectionOptions = useMemo(
+
+  const directReportOptions = useMemo(
     () =>
       directReports.map((report) => ({
         value: report.id,
@@ -128,33 +63,20 @@ export function OneOnOnesView({
       })),
     [directReports],
   );
-  const newMeetingReport = useMemo(
-    () => directReports.find((report) => report.id === newMeetingReportId) ?? null,
-    [directReports, newMeetingReportId],
+  const selectedReport = useMemo(
+    () => directReports.find((report) => report.id === selectedReportId) ?? null,
+    [directReports, selectedReportId],
   );
 
   useEffect(() => {
-    if (!selectedReport) {
-      setReportDraft({
-        reportName: "",
-        reportEmail: "",
-        role: "",
-        cadence: "weekly",
-        nextMeetingAt: "",
-        notes: "",
-      });
+    if (!directReportOptions.length) {
       return;
     }
 
-    setReportDraft({
-      reportName: selectedReport.reportName,
-      reportEmail: selectedReport.reportEmail ?? "",
-      role: selectedReport.role,
-      cadence: selectedReport.cadence,
-      nextMeetingAt: toLocalDateTime(selectedReport.nextMeetingAt),
-      notes: selectedReport.notes,
-    });
-  }, [selectedReport]);
+    if (!selectedReportId || !directReports.some((report) => report.id === selectedReportId)) {
+      setSelectedReportId(directReportOptions[0].value);
+    }
+  }, [directReportOptions, directReports, selectedReportId, setSelectedReportId]);
 
   useEffect(() => {
     if (!selectedReport) {
@@ -175,56 +97,31 @@ export function OneOnOnesView({
   }, [selectedReport]);
 
   useEffect(() => {
-    if (!directReportNameSelectOptions.length || createForm.reportName) {
-      return;
-    }
-
-    setCreateForm((current) => ({ ...current, reportName: directReportNameSelectOptions[0].value }));
-  }, [createForm.reportName, directReportNameSelectOptions]);
-
-  useEffect(() => {
-    if (!directReportRoleSelectOptions.length || createForm.role) {
-      return;
-    }
-
-    setCreateForm((current) => ({ ...current, role: directReportRoleSelectOptions[0].value }));
-  }, [createForm.role, directReportRoleSelectOptions]);
-
-  useEffect(() => {
-    if (!directReportSelectionOptions.length) {
-      setNewMeetingReportId("");
-      return;
-    }
-
-    if (!newMeetingReportId || !directReports.some((report) => report.id === newMeetingReportId)) {
-      setNewMeetingReportId(directReportSelectionOptions[0].value);
-    }
-  }, [directReportSelectionOptions, directReports, newMeetingReportId]);
-
-  useEffect(() => {
     if (newMeetingScheduledFor) {
       return;
     }
 
-    setNewMeetingScheduledFor(new Date().toISOString().slice(0, 16));
-  }, [newMeetingScheduledFor]);
+    setNewMeetingScheduledFor(
+      toLocalDateTime(selectedReport?.nextMeetingAt ?? null) || new Date().toISOString().slice(0, 16),
+    );
+  }, [newMeetingScheduledFor, selectedReport?.nextMeetingAt]);
 
   return (
     <section className="panel admin-panel">
       <SectionHeader
         wide
         eyebrow="Manager Workspace"
-        title="1:1s and direct reports"
+        title="1:1s"
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
-        actions={<span>Private notes stay tied to your account in the current workspace.</span>}
+        actions={<span>Start a meeting, capture notes, and turn follow-up items into private tasks.</span>}
       />
 
       <div className="one-on-one-grid">
         <section className="admin-form-panel">
           <div className="section-heading">
             <SectionHeaderLead>
-              <p className="eyebrow">New meeting</p>
-              <h2>Create new 1:1</h2>
+              <p className="eyebrow">Start a meeting</p>
+              <h2>Select a team member</h2>
             </SectionHeaderLead>
           </div>
 
@@ -232,236 +129,46 @@ export function OneOnOnesView({
             className="task-form"
             onSubmit={(event) => {
               event.preventDefault();
-              if (!newMeetingReportId) {
-                onError("Select a direct report first.");
+              if (!selectedReportId) {
+                onError("Add a direct report in Team before starting a 1:1.");
                 return;
               }
-
-              const nextActionItems = newMeetingNextActions
-                .split("\n")
-                .map((item) => item.trim())
-                .filter((item) => item.length > 0);
-
-              void handleCompleteMeeting(
-                newMeetingReportId,
-                newMeetingScheduledFor,
-                newMeetingDetails,
-                nextActionItems,
-              ).then(() => {
-                setNewMeetingDetails("");
-                setNewMeetingNextActions("");
-              });
+              onError(null);
+              setIsComposerOpen(true);
             }}
           >
             <label>
-              Direct report name
+              Team member
               <AppSelect
-                ariaLabel="1:1 direct report"
+                ariaLabel="Team member"
                 className="app-select"
                 menuClassName="app-select-menu"
-                value={newMeetingReportId}
-                options={directReportSelectionOptions}
-                onChange={setNewMeetingReportId}
+                value={selectedReportId ?? ""}
+                options={directReportOptions}
+                onChange={setSelectedReportId}
                 disabled={directReports.length === 0}
               />
             </label>
 
-            <label>
-              Meeting date and time
-              <input
-                type="datetime-local"
-                value={newMeetingScheduledFor}
-                onChange={(event) => setNewMeetingScheduledFor(event.target.value)}
-                required
-              />
-            </label>
-
-            <div className="detail-card">
-              <strong>Action items from last 1:1</strong>
-              {newMeetingReport?.standingItems.filter((item) => !item.completedAt).length ? (
-                <ul className="detail-list-inline">
-                  {newMeetingReport.standingItems
-                    .filter((item) => !item.completedAt)
-                    .map((item) => (
-                      <li key={item.id}>{item.body}</li>
-                    ))}
-                </ul>
-              ) : (
-                <p>No open action items are carrying forward.</p>
-              )}
-            </div>
-
-            <label>
-              Details for this meeting
-              <textarea
-                rows={5}
-                value={newMeetingDetails}
-                onChange={(event) => setNewMeetingDetails(event.target.value)}
-                placeholder="Discussion notes, decisions, feedback, blockers..."
-              />
-            </label>
-
-            <label>
-              Complete before next 1:1
-              <textarea
-                rows={5}
-                value={newMeetingNextActions}
-                onChange={(event) => setNewMeetingNextActions(event.target.value)}
-                placeholder={"One action item per line"}
-              />
-            </label>
-
             <div className="admin-form-actions">
-              <button className="primary-button" type="submit" disabled={completingMeetingForReportId === newMeetingReportId || directReports.length === 0}>
-                {completingMeetingForReportId === newMeetingReportId ? "Creating..." : "Create 1:1"}
+              <button className="primary-button" type="submit" disabled={!selectedReportId}>
+                Start 1:1
               </button>
             </div>
           </form>
 
-          {directReports.length === 0 ? (
+          {!selectedReport ? (
             <div className="detail-card">
-              <p>Add a direct report in the panel on the right before creating a 1:1.</p>
+              <p>Add direct reports in the Team tab before starting a 1:1.</p>
             </div>
           ) : null}
         </section>
 
-        <section className="admin-form-panel">
-          <div className="section-heading">
-            <SectionHeaderLead>
-              <p className="eyebrow">Your team</p>
-              <h2>Direct reports</h2>
-            </SectionHeaderLead>
-          </div>
-
-          <div className="admin-users-list">
-            {directReports.length > 0 ? (
-              directReports.map((report) => (
-                <article
-                  key={report.id}
-                  className={`admin-user-card ${selectedReportId === report.id ? "is-selected-report" : ""}`}
-                >
-                  <div className="admin-user-top">
-                    <div>
-                      <h3>{report.reportName}</h3>
-                      <p>{report.reportEmail || "No email saved"}</p>
-                      <div className="admin-user-meta">
-                        <span>{report.role}</span>
-                        <span>{cadenceOptions.find((option) => option.value === report.cadence)?.label}</span>
-                        <span>
-                          {report.nextMeetingAt
-                            ? `Next: ${formatReceivedLabel(report.nextMeetingAt)}`
-                            : "No meeting scheduled"}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="admin-user-actions">
-                      <button className="ghost-button compact" type="button" onClick={() => setSelectedReportId(report.id)}>
-                        Open
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <div className="empty-state">
-                <p>No direct reports yet.</p>
-                <span>Add the first one below.</span>
-              </div>
-            )}
-          </div>
-
-          <form
-            className="task-form"
-            style={{ marginTop: "16px" }}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleCreateReport();
-            }}
-          >
-            <label>
-              Direct report name
-              <AppSelect
-                ariaLabel="Direct report name"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.reportName}
-                options={directReportNameSelectOptions}
-                onChange={(value) => setCreateForm((current) => ({ ...current, reportName: value }))}
-                disabled={!isDirectReportConfigReady}
-              />
-            </label>
-
-            <label>
-              Email
-              <input
-                type="email"
-                value={createForm.reportEmail}
-                onChange={(event) => setCreateForm((current) => ({ ...current, reportEmail: event.target.value }))}
-                placeholder="optional"
-              />
-            </label>
-
-            <label>
-              Role
-              <AppSelect
-                ariaLabel="Direct report role"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.role}
-                options={directReportRoleSelectOptions}
-                onChange={(value) => setCreateForm((current) => ({ ...current, role: value }))}
-                disabled={!isDirectReportConfigReady}
-              />
-            </label>
-
-            <label>
-              Cadence
-              <AppSelect
-                ariaLabel="Meeting cadence"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.cadence}
-                options={cadenceOptions}
-                onChange={(value) =>
-                  setCreateForm((current) => ({ ...current, cadence: value as OneOnOneCadence }))
-                }
-              />
-            </label>
-
-            <label>
-              Next meeting
-              <input
-                type="datetime-local"
-                value={createForm.nextMeetingAt}
-                onChange={(event) => setCreateForm((current) => ({ ...current, nextMeetingAt: event.target.value }))}
-              />
-            </label>
-
-            <label>
-              Notes
-              <textarea
-                rows={4}
-                value={createForm.notes}
-                onChange={(event) => setCreateForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Context, goals, support areas, coaching notes..."
-              />
-            </label>
-
-            <div className="admin-form-actions">
-              <button className="primary-button" type="submit" disabled={isCreatingReport || !isDirectReportConfigReady}>
-                {isCreatingReport ? "Creating..." : "Add direct report"}
-              </button>
-            </div>
-          </form>
-        </section>
-      </div>
-
-      {selectedReport && (
-        <div className="one-on-one-grid">
+        {isComposerOpen && selectedReport ? (
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
-                <p className="eyebrow">Relationship details</p>
+                <p className="eyebrow">New meeting</p>
                 <h2>{selectedReport.reportName}</h2>
               </SectionHeaderLead>
             </div>
@@ -470,154 +177,89 @@ export function OneOnOnesView({
               className="task-form"
               onSubmit={(event) => {
                 event.preventDefault();
-                void handleSaveReport(selectedReport.id, reportDraft);
-              }}
-            >
-              <label>
-                Direct report name
-                <AppSelect
-                  ariaLabel="Selected direct report name"
-                  className="app-select"
-                  menuClassName="app-select-menu"
-                  value={reportDraft.reportName}
-                  options={reportDraftNameOptions}
-                  onChange={(value) => setReportDraft((current) => ({ ...current, reportName: value }))}
-                  disabled={!isDirectReportConfigReady}
-                />
-              </label>
-              <label>
-                Email
-                <input
-                  type="email"
-                  value={reportDraft.reportEmail}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, reportEmail: event.target.value }))}
-                  placeholder="optional"
-                />
-              </label>
-              <label>
-                Role
-                <AppSelect
-                  ariaLabel="Selected direct report role"
-                  className="app-select"
-                  menuClassName="app-select-menu"
-                  value={reportDraft.role}
-                  options={reportDraftRoleOptions}
-                  onChange={(value) => setReportDraft((current) => ({ ...current, role: value }))}
-                  disabled={!isDirectReportConfigReady}
-                />
-              </label>
-              <label>
-                Cadence
-                <AppSelect
-                  ariaLabel="Direct report cadence"
-                  className="app-select"
-                  menuClassName="app-select-menu"
-                  value={reportDraft.cadence}
-                  options={cadenceOptions}
-                  onChange={(value) => setReportDraft((current) => ({ ...current, cadence: value as OneOnOneCadence }))}
-                />
-              </label>
-              <label>
-                Next meeting
-                <input
-                  type="datetime-local"
-                  value={reportDraft.nextMeetingAt}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, nextMeetingAt: event.target.value }))}
-                />
-              </label>
-              <label>
-                Private notes
-                <textarea
-                  rows={5}
-                  value={reportDraft.notes}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, notes: event.target.value }))}
-                />
-              </label>
-              <div className="admin-form-actions">
-                <button className="ghost-button danger-button" type="button" disabled={deletingReportId === selectedReport.id} onClick={() => void handleDeleteReport(selectedReport.id)}>
-                  {deletingReportId === selectedReport.id ? "Deleting..." : "Delete"}
-                </button>
-                <button className="primary-button" type="submit" disabled={savingReportId === selectedReport.id || !isDirectReportConfigReady}>
-                  {savingReportId === selectedReport.id ? "Saving..." : "Save"}
-                </button>
-              </div>
-            </form>
-          </section>
+                const nextActionItems = newMeetingNextActions
+                  .split("\n")
+                  .map((item) => item.trim())
+                  .filter((item) => item.length > 0);
 
-          <section className="admin-form-panel">
-            <div className="section-heading">
-              <SectionHeaderLead>
-                <p className="eyebrow">Carry-forward</p>
-                <h2>Action items from last 1:1</h2>
-              </SectionHeaderLead>
-            </div>
-
-            <form
-              className="task-form"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void handleCreateAgendaItem(selectedReport.id, agendaDraft, agendaIsPrivate).then(() => {
-                  setAgendaDraft("");
-                  setAgendaIsPrivate(true);
+                void handleCompleteMeeting(
+                  selectedReport.id,
+                  newMeetingScheduledFor,
+                  newMeetingDetails,
+                  nextActionItems,
+                ).then(() => {
+                  setNewMeetingDetails("");
+                  setNewMeetingNextActions("");
+                  setNewMeetingScheduledFor("");
                 });
               }}
             >
               <label>
-                Topic
-                <textarea rows={3} value={agendaDraft} onChange={(event) => setAgendaDraft(event.target.value)} required />
+                Meeting date and time
+                <input
+                  type="datetime-local"
+                  value={newMeetingScheduledFor}
+                  onChange={(event) => setNewMeetingScheduledFor(event.target.value)}
+                  required
+                />
               </label>
-              <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <input type="checkbox" checked={agendaIsPrivate} onChange={(event) => setAgendaIsPrivate(event.target.checked)} />
-                Private to me
+
+              <div className="detail-card">
+                <strong>Action items from last 1:1</strong>
+                {selectedReport.openActionItems.length ? (
+                  <ul className="detail-list-inline">
+                    {selectedReport.openActionItems.map((item) => (
+                      <li key={item.id}>
+                        {item.details || item.title}
+                        <span style={{ marginLeft: "8px", opacity: 0.7 }}>due {formatReceivedLabel(item.dueDate)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No unresolved 1:1 action items.</p>
+                )}
+              </div>
+
+              <label>
+                Details for this meeting
+                <textarea
+                  rows={5}
+                  value={newMeetingDetails}
+                  onChange={(event) => setNewMeetingDetails(event.target.value)}
+                  placeholder="Discussion notes, decisions, feedback, blockers..."
+                />
               </label>
+
+              <label>
+                Complete before next 1:1
+                <textarea
+                  rows={5}
+                  value={newMeetingNextActions}
+                  onChange={(event) => setNewMeetingNextActions(event.target.value)}
+                  placeholder="One follow-up item per line"
+                />
+              </label>
+
               <div className="admin-form-actions">
-                <button className="primary-button" type="submit" disabled={creatingAgendaForReportId === selectedReport.id}>
-                  {creatingAgendaForReportId === selectedReport.id ? "Adding..." : "Add action item"}
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() => setIsComposerOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={completingMeetingForReportId === selectedReport.id}
+                >
+                  {completingMeetingForReportId === selectedReport.id ? "Saving..." : "Create 1:1"}
                 </button>
               </div>
             </form>
-
-            <div className="task-detail-list admin-compact-list" style={{ marginTop: "16px" }}>
-              {selectedReport.standingItems.length > 0 ? (
-                selectedReport.standingItems.map((item) => (
-                  <article key={item.id} className="detail-card">
-                    <div className="detail-card-top">
-                      <strong>{item.body}</strong>
-                      <span>{item.isPrivate ? "Private" : "Shared"}</span>
-                    </div>
-                    <div className="admin-user-actions admin-user-actions-row">
-                      <button
-                        className="ghost-button compact"
-                        type="button"
-                        disabled={savingAgendaItemId === item.id}
-                        onClick={() =>
-                          void handleUpdateAgendaItem(item.id, selectedReport.id, item.body, item.isPrivate, !item.completedAt)
-                        }
-                      >
-                        {savingAgendaItemId === item.id
-                          ? "Saving..."
-                          : item.completedAt
-                            ? "Mark open"
-                            : "Mark done"}
-                      </button>
-                      <button
-                        className="ghost-button compact danger-button"
-                        type="button"
-                        disabled={deletingAgendaItemId === item.id}
-                        onClick={() => void handleDeleteAgendaItem(item.id, selectedReport.id)}
-                      >
-                        {deletingAgendaItemId === item.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <div className="detail-empty">No standing topics yet.</div>
-              )}
-            </div>
           </section>
-        </div>
-      )}
+        ) : null}
+      </div>
 
       {selectedReport && (
         <section className="admin-form-panel admin-form-panel-wide">

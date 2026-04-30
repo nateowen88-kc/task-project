@@ -36,6 +36,7 @@ export type Task = {
   id: string;
   title: string;
   details: string;
+  isPrivate: boolean;
   dueDate: string;
   remindAt: string | null;
   status: TaskStatus;
@@ -63,6 +64,7 @@ export type TodayItem = {
   sourceType: TodayItemSource;
   title: string;
   details: string;
+  isPrivate: boolean;
   dueDate: string;
   scheduledFor: string;
   remindAt: string | null;
@@ -246,6 +248,13 @@ export type DirectReport = {
   notes: string;
   createdAt: string;
   updatedAt: string;
+  openActionItems: Array<{
+    id: string;
+    title: string;
+    details: string;
+    dueDate: string;
+    status: TaskStatus;
+  }>;
   standingItems: OneOnOneAgendaItem[];
   meetings: OneOnOneMeeting[];
 };

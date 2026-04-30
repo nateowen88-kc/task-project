@@ -270,7 +270,7 @@ export async function fetchTaskDetail(auth: AuthContext, taskId: string): Promis
   ]);
 
   return {
-    task: toApiTask(task, getTaskPermissions(auth, task)),
+    task: toApiTask(task, getTaskPermissions(auth, task), { redactPrivateDetails: false }),
     comments: comments.map((comment) => toApiTaskComment(comment)),
     activities: activities.map((activity) => toApiTaskActivity(activity)),
   };

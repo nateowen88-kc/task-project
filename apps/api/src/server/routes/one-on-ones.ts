@@ -1,7 +1,8 @@
 import express from "express";
-import { OneOnOneCadence, OneOnOneMeetingStatus } from "@prisma/client";
+import { OneOnOneCadence, OneOnOneMeetingStatus, TaskImportance, TaskStatus } from "@prisma/client";
 
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
+import { reverseStatusMap } from "../lib/serializers.js";
 import { requireAuth, authOf } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
 
@@ -44,6 +45,16 @@ function toApiDirectReport(
     notes: report.notes,
     createdAt: report.createdAt.toISOString(),
     updatedAt: report.updatedAt.toISOString(),
+    openActionItems: report.tasks
+      .slice()
+      .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime())
+      .map((task) => ({
+        id: task.id,
+        title: task.title,
+        details: task.details,
+        dueDate: task.dueDate.toISOString().slice(0, 10),
+        status: reverseStatusMap[task.status],
+      })),
     standingItems: report.standingItems
       .slice()
       .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -97,7 +108,20 @@ async function fetchDirectReports(workspaceId: string, managerUserId: string) {
       workspaceId,
       managerUserId,
     },
-    include: { standingItems: true, meetings: true },
+    include: {
+      standingItems: true,
+      meetings: true,
+      tasks: {
+        where: {
+          archivedAt: null,
+          status: {
+            not: TaskStatus.DONE,
+          },
+          isPrivate: true,
+        },
+        orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+      },
+    },
     orderBy: [{ nextMeetingAt: "asc" }, { createdAt: "asc" }],
   });
 }
@@ -194,7 +218,20 @@ export function createOneOnOnesRouter() {
         nextMeetingAt: input.nextMeetingAt ? new Date(input.nextMeetingAt) : null,
         notes: input.notes?.trim() ?? "",
       },
-      include: { standingItems: true, meetings: true },
+      include: {
+        standingItems: true,
+        meetings: true,
+        tasks: {
+          where: {
+            archivedAt: null,
+            status: {
+              not: "DONE",
+            },
+            isPrivate: true,
+          },
+          orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+        },
+      },
     });
 
     response.status(201).json(toApiDirectReport(report));
@@ -238,7 +275,20 @@ export function createOneOnOnesRouter() {
         nextMeetingAt: input.nextMeetingAt ? new Date(input.nextMeetingAt) : null,
         notes: input.notes?.trim() ?? "",
       },
-      include: { standingItems: true, meetings: true },
+      include: {
+        standingItems: true,
+        meetings: true,
+        tasks: {
+          where: {
+            archivedAt: null,
+            status: {
+              not: "DONE",
+            },
+            isPrivate: true,
+          },
+          orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+        },
+      },
     });
 
     response.json(toApiDirectReport(report));
@@ -420,13 +470,19 @@ export function createOneOnOnesRouter() {
     const nextActionItems = normalizeActionItems(input.nextActionItems);
 
     const updatedReport = await prisma.$transaction(async (tx) => {
-      const priorItems = await tx.oneOnOneAgendaItem.findMany({
+      const priorTasks = await tx.task.findMany({
         where: {
+          workspaceId: auth.workspace.id,
           directReportId: existing.id,
-          completedAt: null,
+          archivedAt: null,
+          isPrivate: true,
+          status: {
+            not: TaskStatus.DONE,
+          },
         },
-        orderBy: { sortOrder: "asc" },
+        orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
       });
+      const nextMeetingAt = computeNextMeetingAt(scheduledFor, existing.cadence) ?? scheduledFor;
 
       await tx.oneOnOneMeeting.create({
         data: {
@@ -435,23 +491,38 @@ export function createOneOnOnesRouter() {
           scheduledFor,
           status: OneOnOneMeetingStatus.COMPLETED,
           sharedNotes: meetingDetails,
-          priorActionItems: priorItems.map((item) => item.body),
+          priorActionItems: priorTasks.map((task) => task.details.trim() || task.title),
           nextActionItems,
           completedAt: new Date(),
         },
       });
 
-      await tx.oneOnOneAgendaItem.deleteMany({
-        where: { directReportId: existing.id },
-      });
-
       if (nextActionItems.length > 0) {
-        await tx.oneOnOneAgendaItem.createMany({
+        const nextSortOrder =
+          (
+            await tx.task.aggregate({
+              where: {
+                workspaceId: auth.workspace.id,
+                status: TaskStatus.TODO,
+                archivedAt: null,
+              },
+              _max: { sortOrder: true },
+            })
+          )._max.sortOrder ?? -1;
+
+        await tx.task.createMany({
           data: nextActionItems.map((body, index) => ({
+            workspaceId: auth.workspace.id,
+            createdById: auth.user.id,
+            assigneeId: auth.user.id,
             directReportId: existing.id,
-            body,
+            title: `1:1 follow-up: ${existing.reportName}`,
+            details: body,
+            dueDate: nextMeetingAt,
+            status: TaskStatus.TODO,
+            importance: TaskImportance.MEDIUM,
             isPrivate: true,
-            sortOrder: index,
+            sortOrder: nextSortOrder + index + 1,
           })),
         });
       }
@@ -459,13 +530,26 @@ export function createOneOnOnesRouter() {
       await tx.directReport.update({
         where: { id: existing.id },
         data: {
-          nextMeetingAt: computeNextMeetingAt(scheduledFor, existing.cadence),
+          nextMeetingAt,
         },
       });
 
       return tx.directReport.findFirstOrThrow({
         where: { id: existing.id },
-        include: { standingItems: true, meetings: true },
+        include: {
+          standingItems: true,
+          meetings: true,
+          tasks: {
+            where: {
+              archivedAt: null,
+              status: {
+                not: TaskStatus.DONE,
+              },
+              isPrivate: true,
+            },
+            orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
+          },
+        },
       });
     });
 

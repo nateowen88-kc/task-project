@@ -68,7 +68,7 @@ export function createTasksRouter() {
       orderBy: [{ dueDate: "asc" }, { createdAt: "asc" }],
     });
 
-    response.json(tasks.map((task) => toApiTask(task, getTaskPermissions(auth, task))));
+    response.json(tasks.map((task) => toApiTask(task, getTaskPermissions(auth, task), { redactPrivateDetails: true })));
   });
 
   router.get(API_ROUTES.tasks.templates, async (request, response) => {

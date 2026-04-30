@@ -1,10 +1,11 @@
 import type { AuthSession, Task, TodayItem } from "../../api";
 import { ALL_WORKSPACES_ID } from "./useAppData";
 
-export type AppView = "workflow" | "one-on-ones" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
+export type AppView = "workflow" | "team" | "one-on-ones" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
 
 export const VIEW_LABELS: Record<AppView, string> = {
   workflow: "Tasks",
+  team: "Team",
   "one-on-ones": "1:1s",
   agenda: "Agenda",
   inbox: "Inbox",
@@ -15,6 +16,7 @@ export const VIEW_LABELS: Record<AppView, string> = {
 
 export const VIEW_ICONS: Record<AppView, string> = {
   workflow: "⌂",
+  team: "👥",
   "one-on-ones": "☰",
   agenda: "◷",
   inbox: "✉",
@@ -50,6 +52,7 @@ export function buildAvailableViews({
 }) {
   return [
     "workflow",
+    "team",
     "one-on-ones",
     "agenda",
     "inbox",

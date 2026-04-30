@@ -231,9 +231,14 @@ export function WorkflowView({
                         <span className="meta-chip">{getItemWorkspaceLabel(task)}</span>
                       </div>
                     )}
-                    {task.details && <p>{task.details}</p>}
+                    {task.details ? (
+                      <p>{task.details}</p>
+                    ) : task.isPrivate ? (
+                      <p>Private details hidden until you open the task.</p>
+                    ) : null}
 
                     <div className="task-card-meta">
+                      {task.isPrivate && <span className="meta-chip">Private</span>}
                       <span className="meta-chip">Importance: {importanceLabels[task.importance]}</span>
                       <span className="meta-chip">Assignee: {task.assigneeName ?? "Unassigned"}</span>
                       {task.isRecurring && <span className="meta-chip">{recurrenceLabels[task.recurrenceRule]}</span>}
