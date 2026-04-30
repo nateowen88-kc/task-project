@@ -1,14 +1,23 @@
-import { useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import {
+  createTaskPlaybook,
+  createTaskTemplate,
+  deleteTaskPlaybook,
+  deleteTaskTemplate,
   disconnectOutlookCalendar,
   fetchInvite,
   fetchOutlookCalendarEvents,
   fetchOutlookCalendarStatus,
+  fetchTaskPlaybooks,
+  fetchTaskTemplates,
   fetchSession,
   getOutlookConnectUrl,
   type OutlookCalendarEvent,
   type OutlookCalendarStatus,
+  type TaskPlaybook,
+  type TaskTemplate,
   type WorkspaceInviteLookup,
+  runTaskPlaybook,
 } from "./api";
 import { AgendaView } from "./features/agenda/AgendaView";
 import { SideRail } from "./features/layout/SideRail";
@@ -36,6 +45,7 @@ import { useAdminActions } from "./features/admin/useAdminActions";
 import { useInboxActions } from "./features/inbox/useInboxActions";
 import { getTaskTone, getTodayParts, getTodayReason, isToday } from "./features/agenda/utils";
 import {
+  createDraftFromTemplate,
   IMPORTANCE_LABELS,
   RECURRENCE_LABELS,
   ROLE_LABELS,
@@ -89,6 +99,23 @@ export default function App() {
   const [hideDoneInWorkflow, setHideDoneInWorkflow] = useState(false);
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("all");
   const [inviteLookup, setInviteLookup] = useState<WorkspaceInviteLookup | null>(null);
+  const [taskTemplates, setTaskTemplates] = useState<TaskTemplate[]>([]);
+  const [taskPlaybooks, setTaskPlaybooks] = useState<TaskPlaybook[]>([]);
+  const [hasLoadedWorkflowAssets, setHasLoadedWorkflowAssets] = useState(false);
+  const [runningPlaybookId, setRunningPlaybookId] = useState<string | null>(null);
+  const [templateName, setTemplateName] = useState("");
+  const [templateTitle, setTemplateTitle] = useState("");
+  const [templateDetails, setTemplateDetails] = useState("");
+  const [templateDueDaysOffset, setTemplateDueDaysOffset] = useState("0");
+  const [templateStatus, setTemplateStatus] = useState<keyof typeof STATUS_LABELS>("todo");
+  const [templateImportance, setTemplateImportance] = useState<keyof typeof IMPORTANCE_LABELS>("medium");
+  const [playbookName, setPlaybookName] = useState("");
+  const [playbookDescription, setPlaybookDescription] = useState("");
+  const [playbookItemsText, setPlaybookItemsText] = useState("");
+  const [isTemplateSaving, setIsTemplateSaving] = useState(false);
+  const [isPlaybookSaving, setIsPlaybookSaving] = useState(false);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
+  const [deletingPlaybookId, setDeletingPlaybookId] = useState<string | null>(null);
 
   const canManageUsers = Boolean(session?.permissions.canManageUsers);
   const canCreateWorkspaces = Boolean(session?.permissions.canCreateWorkspaces);
@@ -171,6 +198,7 @@ export default function App() {
     isModalOpen,
     closeModal,
     openCreateModal,
+    openCreateWithDraft,
     handleSubmit,
     startEdit,
     startCaptureReview,
@@ -307,6 +335,13 @@ export default function App() {
     editingId
       ? taskDetail?.task.permissions ?? tasks.find((task) => task.id === editingId)?.permissions ?? null
       : null;
+
+  const loadWorkflowAssets = useCallback(async () => {
+    const [templates, playbooks] = await Promise.all([fetchTaskTemplates(), fetchTaskPlaybooks()]);
+    setTaskTemplates(templates);
+    setTaskPlaybooks(playbooks);
+    setHasLoadedWorkflowAssets(true);
+  }, []);
 
   const formatCalendarEventRange = useCallback((event: OutlookCalendarEvent) => {
     if (event.isAllDay) {
@@ -447,6 +482,21 @@ export default function App() {
   }, [activeView, canCreateWorkspaces, ensureAppConfigLoaded, session]);
 
   useEffect(() => {
+    if (
+      !session ||
+      isAllWorkspacesMode ||
+      hasLoadedWorkflowAssets ||
+      (activeView !== "workflow" && activeView !== "admin")
+    ) {
+      return;
+    }
+
+    void loadWorkflowAssets().catch((assetError) => {
+      setError(assetError instanceof Error ? assetError.message : "Could not load task templates.");
+    });
+  }, [activeView, hasLoadedWorkflowAssets, isAllWorkspacesMode, loadWorkflowAssets, session]);
+
+  useEffect(() => {
     if (!session || !isModalOpen || hasLoadedWorkspaceMembers) {
       return;
     }
@@ -535,6 +585,122 @@ export default function App() {
       setIsOutlookLoading(false);
     }
   }
+
+  async function handleCreateTemplate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      setIsTemplateSaving(true);
+      setError(null);
+      const created = await createTaskTemplate({
+        name: templateName,
+        title: templateTitle,
+        details: templateDetails,
+        status: templateStatus,
+        importance: templateImportance,
+        dueDaysOffset: Number.parseInt(templateDueDaysOffset, 10) || 0,
+        remindDaysOffset: null,
+        isRecurring: false,
+        recurrenceRule: "none",
+        links: [],
+      });
+      setTaskTemplates((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setTemplateName("");
+      setTemplateTitle("");
+      setTemplateDetails("");
+      setTemplateDueDaysOffset("0");
+      setTemplateStatus("todo");
+      setTemplateImportance("medium");
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "Could not save template.");
+    } finally {
+      setIsTemplateSaving(false);
+    }
+  }
+
+  async function handleDeleteTemplate(templateId: string) {
+    try {
+      setDeletingTemplateId(templateId);
+      setError(null);
+      await deleteTaskTemplate(templateId);
+      setTaskTemplates((current) => current.filter((template) => template.id !== templateId));
+    } catch (templateError) {
+      setError(templateError instanceof Error ? templateError.message : "Could not delete template.");
+    } finally {
+      setDeletingTemplateId(null);
+    }
+  }
+
+  async function handleCreatePlaybook(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    try {
+      setIsPlaybookSaving(true);
+      setError(null);
+      const items = playbookItemsText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .map((line, index) => {
+          const [titlePart, offsetPart] = line.split("|").map((part) => part.trim());
+          return {
+            title: titlePart,
+            details: "",
+            status: "todo" as const,
+            importance: "medium" as const,
+            dueDaysOffset: offsetPart ? Number.parseInt(offsetPart, 10) || index : index,
+            remindDaysOffset: null,
+            isRecurring: false,
+            recurrenceRule: "none" as const,
+            links: [],
+          };
+        });
+
+      const created = await createTaskPlaybook({
+        name: playbookName,
+        description: playbookDescription,
+        items,
+      });
+      setTaskPlaybooks((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)));
+      setPlaybookName("");
+      setPlaybookDescription("");
+      setPlaybookItemsText("");
+    } catch (playbookError) {
+      setError(playbookError instanceof Error ? playbookError.message : "Could not save playbook.");
+    } finally {
+      setIsPlaybookSaving(false);
+    }
+  }
+
+  async function handleDeletePlaybook(playbookId: string) {
+    try {
+      setDeletingPlaybookId(playbookId);
+      setError(null);
+      await deleteTaskPlaybook(playbookId);
+      setTaskPlaybooks((current) => current.filter((playbook) => playbook.id !== playbookId));
+    } catch (playbookError) {
+      setError(playbookError instanceof Error ? playbookError.message : "Could not delete playbook.");
+    } finally {
+      setDeletingPlaybookId(null);
+    }
+  }
+
+  async function handleRunPlaybook(playbook: TaskPlaybook) {
+    try {
+      setRunningPlaybookId(playbook.id);
+      setError(null);
+      await runTaskPlaybook(playbook.id);
+      await refreshAppData(undefined, { tasks: true, agenda: true });
+    } catch (playbookError) {
+      setError(playbookError instanceof Error ? playbookError.message : "Could not run playbook.");
+    } finally {
+      setRunningPlaybookId(null);
+    }
+  }
+
+  useEffect(() => {
+    setTaskTemplates([]);
+    setTaskPlaybooks([]);
+    setHasLoadedWorkflowAssets(false);
+  }, [session?.workspace.id]);
 
   return (
     <>
@@ -660,8 +826,13 @@ export default function App() {
               getTaskTone={getTaskTone}
               isToday={(value) => Boolean(value && isToday(value))}
               workflowFilter={workflowFilter}
+              taskTemplates={taskTemplates}
+              taskPlaybooks={taskPlaybooks}
+              runningPlaybookId={runningPlaybookId}
               onWorkflowFilterChange={setWorkflowFilter}
               onOpenCreate={openCreateModal}
+              onUseTemplate={(template) => openCreateWithDraft(createDraftFromTemplate(template))}
+              onRunPlaybook={(playbook) => void handleRunPlaybook(playbook)}
               onToggleHideDone={setHideDoneInWorkflow}
               onMoveTask={(taskId, status) => void moveTask(taskId, status)}
               onStartEdit={(task) => void startEdit(task)}
@@ -694,6 +865,21 @@ export default function App() {
               appConfigForm={appConfigForm}
               hasLoadedAppConfig={hasLoadedAppConfig}
               isAppConfigSaving={isAppConfigSaving}
+              taskTemplates={taskTemplates}
+              taskPlaybooks={taskPlaybooks}
+              templateName={templateName}
+              templateTitle={templateTitle}
+              templateDetails={templateDetails}
+              templateDueDaysOffset={templateDueDaysOffset}
+              templateStatus={templateStatus}
+              templateImportance={templateImportance}
+              playbookName={playbookName}
+              playbookDescription={playbookDescription}
+              playbookItemsText={playbookItemsText}
+              isTemplateSaving={isTemplateSaving}
+              isPlaybookSaving={isPlaybookSaving}
+              deletingTemplateId={deletingTemplateId}
+              deletingPlaybookId={deletingPlaybookId}
               roleLabels={ROLE_LABELS}
               todayBadge={todayBadge}
               workspaceName={session.workspace.name}
@@ -707,10 +893,23 @@ export default function App() {
               onInviteFormChange={(updater) => setInviteForm((current) => updater(current))}
               onWorkspaceFormChange={(updater) => setWorkspaceForm((current) => updater(current))}
               onAppConfigFormChange={(updater) => setAppConfigForm((current) => updater(current))}
+              onTemplateNameChange={setTemplateName}
+              onTemplateTitleChange={setTemplateTitle}
+              onTemplateDetailsChange={setTemplateDetails}
+              onTemplateDueDaysOffsetChange={setTemplateDueDaysOffset}
+              onTemplateStatusChange={setTemplateStatus}
+              onTemplateImportanceChange={setTemplateImportance}
+              onPlaybookNameChange={setPlaybookName}
+              onPlaybookDescriptionChange={setPlaybookDescription}
+              onPlaybookItemsTextChange={setPlaybookItemsText}
               onSubmit={(event) => void handleAdminSubmit(event)}
               onInviteSubmit={(event) => void handleInviteSubmit(event)}
               onWorkspaceSubmit={(event) => void handleWorkspaceSubmit(event)}
               onAppConfigSubmit={(event) => void handleAppConfigSubmit(event)}
+              onTemplateSubmit={(event) => void handleCreateTemplate(event)}
+              onDeleteTemplate={(templateId) => void handleDeleteTemplate(templateId)}
+              onPlaybookSubmit={(event) => void handleCreatePlaybook(event)}
+              onDeletePlaybook={(playbookId) => void handleDeletePlaybook(playbookId)}
               onWorkspaceSettingsSubmit={(workspaceId, payload) => void handleWorkspaceSettingsSubmit(workspaceId, payload)}
               onWorkspaceStatusChange={(workspaceId, isActive) => void handleWorkspaceStatusChange(workspaceId, isActive)}
               onRevokeInvite={(inviteId) => void handleRevokeInvite(inviteId)}

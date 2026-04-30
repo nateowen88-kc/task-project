@@ -31,6 +31,11 @@ export const API_ROUTES = {
   tasks: {
     list: "/api/tasks",
     create: "/api/tasks",
+    templates: "/api/tasks/templates",
+    template: (id: string) => `/api/tasks/templates/${id}`,
+    playbooks: "/api/tasks/playbooks",
+    playbook: (id: string) => `/api/tasks/playbooks/${id}`,
+    runPlaybook: (id: string) => `/api/tasks/playbooks/${id}/run`,
     detail: (id: string) => `/api/tasks/${id}/detail`,
     update: (id: string) => `/api/tasks/${id}`,
     delete: (id: string) => `/api/tasks/${id}`,

@@ -99,6 +99,16 @@ export function useTaskActions({
     setIsModalOpen(true);
   }
 
+  function openCreateWithDraft(nextDraft: TaskDraft) {
+    setDraft(nextDraft);
+    setEditingId(null);
+    setReviewCaptureId(null);
+    setTaskDetail(null);
+    setCommentDraft("");
+    onError(null);
+    setIsModalOpen(true);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSaving(true);
@@ -346,6 +356,7 @@ export function useTaskActions({
     isModalOpen,
     closeModal,
     openCreateModal,
+    openCreateWithDraft,
     handleSubmit,
     startEdit,
     startCaptureReview,

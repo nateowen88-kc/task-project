@@ -1,6 +1,18 @@
 import { request } from "./client";
 import { toTaskPayload } from "./helpers";
-import type { Task, TaskDetail, TaskDraft, TaskStatus, TodayItem, TodayItemSource } from "./types";
+import type {
+  RunTaskPlaybookResponse,
+  Task,
+  TaskDetail,
+  TaskDraft,
+  TaskPlaybook,
+  TaskPlaybookPayload,
+  TaskStatus,
+  TaskTemplate,
+  TaskTemplatePayload,
+  TodayItem,
+  TodayItemSource,
+} from "./types";
 import { API_ROUTES } from "../../../../src/shared/api-routes";
 
 function fetchTasks() {
@@ -9,6 +21,46 @@ function fetchTasks() {
 
 function fetchTaskDetail(id: string) {
   return request<TaskDetail>(API_ROUTES.tasks.detail(id));
+}
+
+function fetchTaskTemplates() {
+  return request<TaskTemplate[]>(API_ROUTES.tasks.templates);
+}
+
+function createTaskTemplate(payload: TaskTemplatePayload) {
+  return request<TaskTemplate>(API_ROUTES.tasks.templates, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+async function deleteTaskTemplate(id: string) {
+  await request<null>(API_ROUTES.tasks.template(id), {
+    method: "DELETE",
+  });
+}
+
+function fetchTaskPlaybooks() {
+  return request<TaskPlaybook[]>(API_ROUTES.tasks.playbooks);
+}
+
+function createTaskPlaybook(payload: TaskPlaybookPayload) {
+  return request<TaskPlaybook>(API_ROUTES.tasks.playbooks, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+async function deleteTaskPlaybook(id: string) {
+  await request<null>(API_ROUTES.tasks.playbook(id), {
+    method: "DELETE",
+  });
+}
+
+function runTaskPlaybook(id: string) {
+  return request<RunTaskPlaybookResponse>(API_ROUTES.tasks.runPlaybook(id), {
+    method: "POST",
+  });
 }
 
 function createTaskComment(id: string, body: string) {
@@ -74,9 +126,16 @@ export {
   archiveTask,
   createTask,
   createTaskComment,
+  createTaskPlaybook,
+  createTaskTemplate,
+  deleteTaskPlaybook,
+  deleteTaskTemplate,
   deleteTask,
   fetchTaskDetail,
+  fetchTaskPlaybooks,
   fetchTasks,
+  fetchTaskTemplates,
+  runTaskPlaybook,
   skipTodayItem,
   snoozeTodayItem,
   updateTask,

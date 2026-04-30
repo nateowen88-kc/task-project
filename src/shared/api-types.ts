@@ -141,6 +141,76 @@ export type TaskDraft = {
   recurrenceRule: RecurrenceRuleValue;
 };
 
+export type TaskTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  details: string;
+  status: TaskStatus;
+  importance: TaskImportance;
+  dueDaysOffset: number;
+  remindDaysOffset: number | null;
+  isRecurring: boolean;
+  recurrenceRule: RecurrenceRuleValue;
+  links: string[];
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TaskTemplatePayload = {
+  name: string;
+  title: string;
+  details: string;
+  status: TaskStatus;
+  importance: TaskImportance;
+  dueDaysOffset: number;
+  remindDaysOffset: number | null;
+  isRecurring: boolean;
+  recurrenceRule: RecurrenceRuleValue;
+  links: string[];
+};
+
+export type TaskPlaybookItem = {
+  id: string;
+  sortOrder: number;
+  title: string;
+  details: string;
+  status: TaskStatus;
+  importance: TaskImportance;
+  dueDaysOffset: number;
+  remindDaysOffset: number | null;
+  isRecurring: boolean;
+  recurrenceRule: RecurrenceRuleValue;
+  links: string[];
+};
+
+export type TaskPlaybook = {
+  id: string;
+  name: string;
+  description: string;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: TaskPlaybookItem[];
+};
+
+export type TaskPlaybookPayload = {
+  name: string;
+  description: string;
+  items: Array<{
+    title: string;
+    details: string;
+    status: TaskStatus;
+    importance: TaskImportance;
+    dueDaysOffset: number;
+    remindDaysOffset: number | null;
+    isRecurring: boolean;
+    recurrenceRule: RecurrenceRuleValue;
+    links: string[];
+  }>;
+};
+
 export type WorkspaceMember = {
   id: string;
   name: string;
@@ -337,6 +407,10 @@ export type TaskPayload = {
 
 export type CreateCommentPayload = {
   body: string;
+};
+
+export type RunTaskPlaybookResponse = {
+  tasks: Task[];
 };
 
 export type SwitchWorkspacePayload = {

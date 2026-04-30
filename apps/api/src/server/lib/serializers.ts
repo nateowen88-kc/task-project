@@ -209,6 +209,47 @@ export type ApiWorkspaceInvite = {
   updatedAt: string;
 };
 
+export type ApiTaskTemplate = {
+  id: string;
+  name: string;
+  title: string;
+  details: string;
+  status: StatusValue;
+  importance: "low" | "medium" | "high";
+  dueDaysOffset: number;
+  remindDaysOffset: number | null;
+  links: string[];
+  isRecurring: boolean;
+  recurrenceRule: RecurrenceValue;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApiTaskPlaybookItem = {
+  id: string;
+  sortOrder: number;
+  title: string;
+  details: string;
+  status: StatusValue;
+  importance: "low" | "medium" | "high";
+  dueDaysOffset: number;
+  remindDaysOffset: number | null;
+  links: string[];
+  isRecurring: boolean;
+  recurrenceRule: RecurrenceValue;
+};
+
+export type ApiTaskPlaybook = {
+  id: string;
+  name: string;
+  description: string;
+  createdById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: ApiTaskPlaybookItem[];
+};
+
 export type TaskRecord = Prisma.TaskGetPayload<{
   include: {
     workspace: true;
@@ -234,6 +275,14 @@ export type OccurrenceRecord = Prisma.TaskOccurrenceGetPayload<{
         };
       };
     };
+  };
+}>;
+
+export type TaskTemplateRecord = Prisma.TaskTemplateGetPayload<object>;
+
+export type TaskPlaybookRecord = Prisma.TaskPlaybookGetPayload<{
+  include: {
+    items: true;
   };
 }>;
 
@@ -345,6 +394,52 @@ export function toApiTodayTask(
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
     permissions,
+  };
+}
+
+export function toApiTaskTemplate(template: TaskTemplateRecord): ApiTaskTemplate {
+  return {
+    id: template.id,
+    name: template.name,
+    title: template.title,
+    details: template.details,
+    status: reverseStatusMap[template.status],
+    importance: reverseImportanceMap[template.importance],
+    dueDaysOffset: template.dueDaysOffset,
+    remindDaysOffset: template.remindDaysOffset,
+    links: template.links,
+    isRecurring: template.isRecurring,
+    recurrenceRule: template.recurrenceRule ? reverseRecurrenceMap[template.recurrenceRule] : "none",
+    createdById: template.createdById,
+    createdAt: template.createdAt.toISOString(),
+    updatedAt: template.updatedAt.toISOString(),
+  };
+}
+
+export function toApiTaskPlaybook(playbook: TaskPlaybookRecord): ApiTaskPlaybook {
+  return {
+    id: playbook.id,
+    name: playbook.name,
+    description: playbook.description,
+    createdById: playbook.createdById,
+    createdAt: playbook.createdAt.toISOString(),
+    updatedAt: playbook.updatedAt.toISOString(),
+    items: playbook.items
+      .slice()
+      .sort((left, right) => left.sortOrder - right.sortOrder)
+      .map((item) => ({
+        id: item.id,
+        sortOrder: item.sortOrder,
+        title: item.title,
+        details: item.details,
+        status: reverseStatusMap[item.status],
+        importance: reverseImportanceMap[item.importance],
+        dueDaysOffset: item.dueDaysOffset,
+        remindDaysOffset: item.remindDaysOffset,
+        links: item.links,
+        isRecurring: item.isRecurring,
+        recurrenceRule: item.recurrenceRule ? reverseRecurrenceMap[item.recurrenceRule] : "none",
+      })),
   };
 }
 

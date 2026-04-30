@@ -13,7 +13,14 @@ import {
 } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
 import { addDays, formatDate, toDateOnly, toDateTime } from "../lib/dates.js";
-import { reverseStatusMap, toApiTask, toApiTodayOccurrence, toApiTodayTask } from "../lib/serializers.js";
+import {
+  reverseStatusMap,
+  toApiTask,
+  toApiTaskPlaybook,
+  toApiTaskTemplate,
+  toApiTodayOccurrence,
+  toApiTodayTask,
+} from "../lib/serializers.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import { notifyTaskAssignment, notifyTaskComment } from "../services/notification-service.js";
 import {
@@ -31,8 +38,12 @@ import {
   TaskStatus,
   validateTaskCommentInput,
   validateTaskInput,
+  validateTaskPlaybookInput,
+  validateTaskTemplateInput,
   type TaskCommentInput,
   type TaskInput,
+  type TaskPlaybookInput,
+  type TaskTemplateInput,
 } from "../services/task-service.js";
 import { normalizeCaptureLinks } from "../services/capture-service.js";
 
@@ -58,6 +69,246 @@ export function createTasksRouter() {
     });
 
     response.json(tasks.map((task) => toApiTask(task, getTaskPermissions(auth, task))));
+  });
+
+  router.get(API_ROUTES.tasks.templates, async (request, response) => {
+    const auth = authOf(request);
+    const templates = await prisma.taskTemplate.findMany({
+      where: {
+        workspaceId: auth.workspace.id,
+      },
+      orderBy: [{ name: "asc" }],
+    });
+
+    response.json(templates.map((template) => toApiTaskTemplate(template)));
+  });
+
+  router.post(API_ROUTES.tasks.templates, async (request, response) => {
+    const auth = authOf(request);
+    if (!isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can manage templates." });
+      return;
+    }
+
+    const input = request.body as Partial<TaskTemplateInput>;
+    if (!validateTaskTemplateInput(input)) {
+      response.status(400).json({ error: "Invalid template payload." });
+      return;
+    }
+
+    const recurrenceRule = normalizeRecurrence(input.isRecurring, input.recurrenceRule);
+    const template = await prisma.taskTemplate.create({
+      data: {
+        workspaceId: auth.workspace.id,
+        createdById: auth.user.id,
+        name: input.name.trim(),
+        title: input.title.trim(),
+        details: input.details?.trim() ?? "",
+        status: statusMap[input.status],
+        importance: input.importance ? (importanceMap[input.importance] as any) : "MEDIUM",
+        dueDaysOffset: input.dueDaysOffset,
+        remindDaysOffset: input.remindDaysOffset ?? null,
+        isRecurring: Boolean(recurrenceRule),
+        recurrenceRule,
+        links: normalizeLinks(input.links),
+      },
+    });
+
+    response.status(201).json(toApiTaskTemplate(template));
+  });
+
+  router.delete("/api/tasks/templates/:id", async (request, response) => {
+    const auth = authOf(request);
+    if (!isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can manage templates." });
+      return;
+    }
+
+    const existing = await prisma.taskTemplate.findFirst({
+      where: {
+        id: request.params.id,
+        workspaceId: auth.workspace.id,
+      },
+    });
+
+    if (!existing) {
+      response.status(404).json({ error: "Template not found." });
+      return;
+    }
+
+    await prisma.taskTemplate.delete({ where: { id: existing.id } });
+    response.status(204).send();
+  });
+
+  router.get(API_ROUTES.tasks.playbooks, async (request, response) => {
+    const auth = authOf(request);
+    const playbooks = await prisma.taskPlaybook.findMany({
+      where: {
+        workspaceId: auth.workspace.id,
+      },
+      include: {
+        items: {
+          orderBy: [{ sortOrder: "asc" }],
+        },
+      },
+      orderBy: [{ name: "asc" }],
+    });
+
+    response.json(playbooks.map((playbook) => toApiTaskPlaybook(playbook)));
+  });
+
+  router.post(API_ROUTES.tasks.playbooks, async (request, response) => {
+    const auth = authOf(request);
+    if (!isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can manage playbooks." });
+      return;
+    }
+
+    const input = request.body as Partial<TaskPlaybookInput>;
+    if (!validateTaskPlaybookInput(input)) {
+      response.status(400).json({ error: "Invalid playbook payload." });
+      return;
+    }
+
+    const playbook = await prisma.taskPlaybook.create({
+      data: {
+        workspaceId: auth.workspace.id,
+        createdById: auth.user.id,
+        name: input.name.trim(),
+        description: input.description?.trim() ?? "",
+        items: {
+          create: input.items.map((item, index) => {
+            const recurrenceRule = normalizeRecurrence(item.isRecurring, item.recurrenceRule);
+            return {
+              sortOrder: index,
+              title: item.title.trim(),
+              details: item.details?.trim() ?? "",
+              status: statusMap[item.status],
+              importance: item.importance ? (importanceMap[item.importance] as any) : "MEDIUM",
+              dueDaysOffset: item.dueDaysOffset,
+              remindDaysOffset: item.remindDaysOffset ?? null,
+              isRecurring: Boolean(recurrenceRule),
+              recurrenceRule,
+              links: normalizeLinks(item.links),
+            };
+          }),
+        },
+      },
+      include: {
+        items: {
+          orderBy: [{ sortOrder: "asc" }],
+        },
+      },
+    });
+
+    response.status(201).json(toApiTaskPlaybook(playbook));
+  });
+
+  router.delete("/api/tasks/playbooks/:id", async (request, response) => {
+    const auth = authOf(request);
+    if (!isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can manage playbooks." });
+      return;
+    }
+
+    const existing = await prisma.taskPlaybook.findFirst({
+      where: {
+        id: request.params.id,
+        workspaceId: auth.workspace.id,
+      },
+    });
+
+    if (!existing) {
+      response.status(404).json({ error: "Playbook not found." });
+      return;
+    }
+
+    await prisma.taskPlaybook.delete({ where: { id: existing.id } });
+    response.status(204).send();
+  });
+
+  router.post("/api/tasks/playbooks/:id/run", async (request, response) => {
+    const auth = authOf(request);
+    if (!auth.workspace.allowMemberTaskCreation && !isWorkspaceAdmin(auth)) {
+      response.status(403).json({ error: "Only workspace admins can create tasks in this workspace." });
+      return;
+    }
+
+    const playbook = await prisma.taskPlaybook.findFirst({
+      where: {
+        id: request.params.id,
+        workspaceId: auth.workspace.id,
+      },
+      include: {
+        items: {
+          orderBy: [{ sortOrder: "asc" }],
+        },
+      },
+    });
+
+    if (!playbook) {
+      response.status(404).json({ error: "Playbook not found." });
+      return;
+    }
+
+    const actorName = formatActorName(auth.user);
+    const createdTasks = await prisma.$transaction(async (tx) => {
+      const tasks = [];
+      for (const item of playbook.items) {
+        const sortOrder = await getNextSortOrder(auth.workspace.id, item.status);
+        const dueDate = addDays(new Date(), item.dueDaysOffset);
+        const remindAt =
+          item.remindDaysOffset === null
+            ? null
+            : new Date(addDays(dueDate, -item.remindDaysOffset).setHours(9, 0, 0, 0));
+        const task = await tx.task.create({
+          data: {
+            workspaceId: auth.workspace.id,
+            createdById: auth.user.id,
+            assigneeId: auth.user.id,
+            title: item.title,
+            details: item.details,
+            dueDate: toDateOnly(formatDate(dueDate)),
+            remindAt,
+            status: item.status,
+            importance: item.importance,
+            sortOrder,
+            isRecurring: item.isRecurring,
+            recurrenceRule: item.recurrenceRule,
+            archivedAt: null,
+            completedAt: item.status === TaskStatus.DONE ? new Date() : null,
+            links: {
+              create: item.links.map((url, index) => ({
+                url,
+                sortOrder: index,
+              })),
+            },
+          },
+          include: {
+            workspace: true,
+            links: { orderBy: { sortOrder: "asc" } },
+            assignee: { select: { name: true } },
+          },
+        });
+
+        await createTaskActivity(
+          tx,
+          task.id,
+          task.workspaceId,
+          auth.user.id,
+          TaskActivityType.CREATED,
+          `${actorName} created the task from playbook ${playbook.name}.`,
+        );
+
+        tasks.push(task);
+      }
+
+      return tasks;
+    });
+
+    response.status(201).json({
+      tasks: createdTasks.map((task) => toApiTask(task, getTaskPermissions(auth, task))),
+    });
   });
 
   router.get("/api/tasks/:id/detail", async (request, response) => {

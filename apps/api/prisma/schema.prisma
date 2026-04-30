@@ -96,6 +96,8 @@ model User {
   sentWorkspaceInvites  WorkspaceInvite[] @relation("WorkspaceInviteSender")
   passwordResetTokens   PasswordResetToken[]
   calendarConnections   CalendarConnection[]
+  taskTemplates         TaskTemplate[]    @relation("TaskTemplateCreator")
+  taskPlaybooks         TaskPlaybook[]    @relation("TaskPlaybookCreator")
 }
 
 model AppConfig {
@@ -151,6 +153,8 @@ model Workspace {
   taskActivities TaskActivity[]
   notifications Notification[]
   invites       WorkspaceInvite[]
+  taskTemplates TaskTemplate[]
+  taskPlaybooks TaskPlaybook[]
 }
 
 model WorkspaceMember {
@@ -222,6 +226,7 @@ model Task {
   comments       TaskComment[]
   activities     TaskActivity[]
   notifications  Notification[]
+  playbookItems  TaskPlaybookItem[]
 
   @@index([workspaceId, dueDate, status])
   @@index([workspaceId, status, sortOrder])
@@ -229,6 +234,67 @@ model Task {
   @@index([dueDate, status])
   @@index([status, sortOrder])
   @@index([plannedForDate, status])
+}
+
+model TaskTemplate {
+  id             String         @id @default(cuid())
+  workspaceId    String
+  createdById    String?
+  name           String
+  title          String
+  details        String         @default("")
+  status         TaskStatus     @default(TODO)
+  importance     TaskImportance @default(MEDIUM)
+  dueDaysOffset  Int            @default(0)
+  remindDaysOffset Int?
+  isRecurring    Boolean        @default(false)
+  recurrenceRule RecurrenceRule?
+  links          String[]       @default([])
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+  workspace      Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User?          @relation("TaskTemplateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, name])
+  @@unique([workspaceId, name])
+}
+
+model TaskPlaybook {
+  id             String             @id @default(cuid())
+  workspaceId    String
+  createdById    String?
+  name           String
+  description    String             @default("")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @default(now()) @updatedAt
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdBy      User?              @relation("TaskPlaybookCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  items          TaskPlaybookItem[]
+
+  @@index([workspaceId, name])
+  @@unique([workspaceId, name])
+}
+
+model TaskPlaybookItem {
+  id               String           @id @default(cuid())
+  playbookId       String
+  templateTaskId   String?
+  sortOrder        Int              @default(0)
+  title            String
+  details          String           @default("")
+  status           TaskStatus       @default(TODO)
+  importance       TaskImportance   @default(MEDIUM)
+  dueDaysOffset    Int              @default(0)
+  remindDaysOffset Int?
+  isRecurring      Boolean          @default(false)
+  recurrenceRule   RecurrenceRule?
+  links            String[]         @default([])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @default(now()) @updatedAt
+  playbook         TaskPlaybook     @relation(fields: [playbookId], references: [id], onDelete: Cascade)
+  templateTask     Task?            @relation(fields: [templateTaskId], references: [id], onDelete: SetNull)
+
+  @@index([playbookId, sortOrder])
 }
 
 model TaskLink {

@@ -1,4 +1,4 @@
-import type { Task, TaskStatus } from "../../api";
+import type { Task, TaskPlaybook, TaskStatus, TaskTemplate } from "../../api";
 import { SectionHeader } from "../../components/layout/SectionHeader";
 
 export type WorkflowFilter = "all" | "assigned" | "created" | "unassigned";
@@ -19,8 +19,13 @@ type WorkflowViewProps = {
   getTaskTone: (task: Task) => string;
   isToday: (value: string | null | undefined) => boolean;
   workflowFilter: WorkflowFilter;
+  taskTemplates: TaskTemplate[];
+  taskPlaybooks: TaskPlaybook[];
+  runningPlaybookId: string | null;
   onWorkflowFilterChange: (next: WorkflowFilter) => void;
   onOpenCreate: () => void;
+  onUseTemplate: (template: TaskTemplate) => void;
+  onRunPlaybook: (playbook: TaskPlaybook) => void;
   onToggleHideDone: (next: boolean) => void;
   onMoveTask: (taskId: string, status: TaskStatus) => void;
   onStartEdit: (task: Task) => void;
@@ -44,8 +49,13 @@ export function WorkflowView({
   getTaskTone,
   isToday,
   workflowFilter,
+  taskTemplates,
+  taskPlaybooks,
+  runningPlaybookId,
   onWorkflowFilterChange,
   onOpenCreate,
+  onUseTemplate,
+  onRunPlaybook,
   onToggleHideDone,
   onMoveTask,
   onStartEdit,
@@ -86,6 +96,80 @@ export function WorkflowView({
           </>
         }
       />
+
+      {(taskTemplates.length > 0 || taskPlaybooks.length > 0) && (
+        <div className="workflow-assets-grid">
+          <section className="detail-card workflow-asset-panel">
+            <div className="detail-card-top">
+              <strong>Task templates</strong>
+              <span>{taskTemplates.length}</span>
+            </div>
+            {taskTemplates.length > 0 ? (
+              <div className="task-detail-list admin-compact-list">
+                {taskTemplates.map((template) => (
+                  <article key={template.id} className="detail-card">
+                    <div className="detail-card-top">
+                      <strong>{template.name}</strong>
+                      <span>{importanceLabels[template.importance]}</span>
+                    </div>
+                    <p>{template.title}</p>
+                    <div className="task-card-meta">
+                      <span className="meta-chip">Due +{template.dueDaysOffset}d</span>
+                      <span className="meta-chip">{statusLabels[template.status]}</span>
+                    </div>
+                    <div className="admin-user-actions">
+                      <button className="ghost-button compact" type="button" onClick={() => onUseTemplate(template)}>
+                        Use template
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="detail-empty">No templates yet.</div>
+            )}
+          </section>
+
+          <section className="detail-card workflow-asset-panel">
+            <div className="detail-card-top">
+              <strong>Playbooks</strong>
+              <span>{taskPlaybooks.length}</span>
+            </div>
+            {taskPlaybooks.length > 0 ? (
+              <div className="task-detail-list admin-compact-list">
+                {taskPlaybooks.map((playbook) => (
+                  <article key={playbook.id} className="detail-card">
+                    <div className="detail-card-top">
+                      <strong>{playbook.name}</strong>
+                      <span>{playbook.items.length} tasks</span>
+                    </div>
+                    <p>{playbook.description || "Reusable multi-task workflow."}</p>
+                    <div className="task-card-meta">
+                      {playbook.items.slice(0, 3).map((item) => (
+                        <span key={item.id} className="meta-chip">
+                          {item.title}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="admin-user-actions">
+                      <button
+                        className="primary-button compact"
+                        type="button"
+                        disabled={runningPlaybookId === playbook.id}
+                        onClick={() => onRunPlaybook(playbook)}
+                      >
+                        {runningPlaybookId === playbook.id ? "Running..." : "Run playbook"}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="detail-empty">No playbooks yet.</div>
+            )}
+          </section>
+        </div>
+      )}
 
       <div className="board-grid">
         {statusOrder.map((status) => {

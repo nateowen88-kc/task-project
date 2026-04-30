@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { AdminUser, AdminWorkspace, WorkspaceInvite, WorkspaceInviteRole, WorkspaceRole } from "../../api";
+import {
+  AdminUser,
+  AdminWorkspace,
+  TaskImportance,
+  TaskPlaybook,
+  TaskStatus,
+  TaskTemplate,
+  WorkspaceInvite,
+  WorkspaceInviteRole,
+  WorkspaceRole,
+} from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
@@ -35,6 +45,21 @@ type AdminViewProps = {
   appConfigForm: AppConfigFormState;
   hasLoadedAppConfig: boolean;
   isAppConfigSaving: boolean;
+  taskTemplates: TaskTemplate[];
+  taskPlaybooks: TaskPlaybook[];
+  templateName: string;
+  templateTitle: string;
+  templateDetails: string;
+  templateDueDaysOffset: string;
+  templateStatus: TaskStatus;
+  templateImportance: TaskImportance;
+  playbookName: string;
+  playbookDescription: string;
+  playbookItemsText: string;
+  isTemplateSaving: boolean;
+  isPlaybookSaving: boolean;
+  deletingTemplateId: string | null;
+  deletingPlaybookId: string | null;
   roleLabels: Record<WorkspaceRole, string>;
   todayBadge: { month: string; day: number; weekday: string };
   workspaceName: string;
@@ -48,10 +73,23 @@ type AdminViewProps = {
   onInviteFormChange: (updater: (current: InviteFormState) => InviteFormState) => void;
   onWorkspaceFormChange: (updater: (current: WorkspaceFormState) => WorkspaceFormState) => void;
   onAppConfigFormChange: (updater: (current: AppConfigFormState) => AppConfigFormState) => void;
+  onTemplateNameChange: (value: string) => void;
+  onTemplateTitleChange: (value: string) => void;
+  onTemplateDetailsChange: (value: string) => void;
+  onTemplateDueDaysOffsetChange: (value: string) => void;
+  onTemplateStatusChange: (value: TaskStatus) => void;
+  onTemplateImportanceChange: (value: TaskImportance) => void;
+  onPlaybookNameChange: (value: string) => void;
+  onPlaybookDescriptionChange: (value: string) => void;
+  onPlaybookItemsTextChange: (value: string) => void;
   onSubmit: React.FormEventHandler<HTMLFormElement>;
   onInviteSubmit: React.FormEventHandler<HTMLFormElement>;
   onWorkspaceSubmit: React.FormEventHandler<HTMLFormElement>;
   onAppConfigSubmit: React.FormEventHandler<HTMLFormElement>;
+  onTemplateSubmit: React.FormEventHandler<HTMLFormElement>;
+  onDeleteTemplate: (templateId: string) => void;
+  onPlaybookSubmit: React.FormEventHandler<HTMLFormElement>;
+  onDeletePlaybook: (playbookId: string) => void;
   onWorkspaceSettingsSubmit: (workspaceId: string, payload: WorkspaceSettingsFormState) => void;
   onWorkspaceStatusChange: (workspaceId: string, isActive: boolean) => void;
   onRevokeInvite: (inviteId: string) => void;
@@ -88,6 +126,21 @@ export function AdminView({
   appConfigForm,
   hasLoadedAppConfig,
   isAppConfigSaving,
+  taskTemplates,
+  taskPlaybooks,
+  templateName,
+  templateTitle,
+  templateDetails,
+  templateDueDaysOffset,
+  templateStatus,
+  templateImportance,
+  playbookName,
+  playbookDescription,
+  playbookItemsText,
+  isTemplateSaving,
+  isPlaybookSaving,
+  deletingTemplateId,
+  deletingPlaybookId,
   roleLabels,
   todayBadge,
   workspaceName,
@@ -101,10 +154,23 @@ export function AdminView({
   onInviteFormChange,
   onWorkspaceFormChange,
   onAppConfigFormChange,
+  onTemplateNameChange,
+  onTemplateTitleChange,
+  onTemplateDetailsChange,
+  onTemplateDueDaysOffsetChange,
+  onTemplateStatusChange,
+  onTemplateImportanceChange,
+  onPlaybookNameChange,
+  onPlaybookDescriptionChange,
+  onPlaybookItemsTextChange,
   onSubmit,
   onInviteSubmit,
   onWorkspaceSubmit,
   onAppConfigSubmit,
+  onTemplateSubmit,
+  onDeleteTemplate,
+  onPlaybookSubmit,
+  onDeletePlaybook,
   onWorkspaceSettingsSubmit,
   onWorkspaceStatusChange,
   onRevokeInvite,
@@ -562,6 +628,163 @@ export function AdminView({
                 })
               ) : (
                 <div className="detail-empty">No workspaces available.</div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {canCreateWorkspaces && (
+          <section className="admin-form-panel">
+            <div className="section-heading">
+              <SectionHeaderLead>
+                <p className="eyebrow">Workflow library</p>
+                <h2>Task templates</h2>
+              </SectionHeaderLead>
+            </div>
+
+            <form className="task-form" onSubmit={onTemplateSubmit}>
+              <label>
+                Template name
+                <input value={templateName} onChange={(event) => onTemplateNameChange(event.target.value)} required />
+              </label>
+              <label>
+                Task title
+                <input value={templateTitle} onChange={(event) => onTemplateTitleChange(event.target.value)} required />
+              </label>
+              <label>
+                Details
+                <textarea rows={3} value={templateDetails} onChange={(event) => onTemplateDetailsChange(event.target.value)} />
+              </label>
+              <label>
+                Due days offset
+                <input type="number" value={templateDueDaysOffset} onChange={(event) => onTemplateDueDaysOffsetChange(event.target.value)} />
+              </label>
+              <label>
+                Status
+                <AppSelect
+                  ariaLabel="Template status"
+                  className="app-select"
+                  menuClassName="app-select-menu"
+                  value={templateStatus}
+                  options={(["blocked", "todo", "in-progress", "done"] as TaskStatus[]).map((status) => ({
+                    value: status,
+                    label: status,
+                  }))}
+                  onChange={onTemplateStatusChange}
+                />
+              </label>
+              <label>
+                Importance
+                <AppSelect
+                  ariaLabel="Template importance"
+                  className="app-select"
+                  menuClassName="app-select-menu"
+                  value={templateImportance}
+                  options={(["low", "medium", "high"] as TaskImportance[]).map((importance) => ({
+                    value: importance,
+                    label: importance,
+                  }))}
+                  onChange={onTemplateImportanceChange}
+                />
+              </label>
+              <div className="admin-form-actions">
+                <button className="primary-button" type="submit" disabled={isTemplateSaving}>
+                  {isTemplateSaving ? "Saving..." : "Create template"}
+                </button>
+              </div>
+            </form>
+
+            <div className="task-detail-list admin-compact-list" style={{ marginTop: "16px" }}>
+              {taskTemplates.length ? (
+                taskTemplates.map((template) => (
+                  <article key={template.id} className="detail-card">
+                    <div className="detail-card-top">
+                      <strong>{template.name}</strong>
+                      <span>{template.status}</span>
+                    </div>
+                    <p>{template.title}</p>
+                    <div className="admin-user-actions">
+                      <span>Due +{template.dueDaysOffset}d</span>
+                      <button
+                        className="ghost-button compact danger-button"
+                        type="button"
+                        disabled={deletingTemplateId === template.id}
+                        onClick={() => onDeleteTemplate(template.id)}
+                      >
+                        {deletingTemplateId === template.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="detail-empty">No templates yet.</div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {canCreateWorkspaces && (
+          <section className="admin-form-panel">
+            <div className="section-heading">
+              <SectionHeaderLead>
+                <p className="eyebrow">Workflow library</p>
+                <h2>Recurring playbooks</h2>
+              </SectionHeaderLead>
+            </div>
+
+            <form className="task-form" onSubmit={onPlaybookSubmit}>
+              <label>
+                Playbook name
+                <input value={playbookName} onChange={(event) => onPlaybookNameChange(event.target.value)} required />
+              </label>
+              <label>
+                Description
+                <textarea rows={2} value={playbookDescription} onChange={(event) => onPlaybookDescriptionChange(event.target.value)} />
+              </label>
+              <label>
+                Tasks
+                <textarea
+                  rows={5}
+                  value={playbookItemsText}
+                  onChange={(event) => onPlaybookItemsTextChange(event.target.value)}
+                  placeholder={"Task one | 0\nTask two | 1\nTask three | 3"}
+                  required
+                />
+              </label>
+              <div className="detail-card">
+                <p>One task per line. Optional format: <code>Task title | due days offset</code>.</p>
+              </div>
+              <div className="admin-form-actions">
+                <button className="primary-button" type="submit" disabled={isPlaybookSaving}>
+                  {isPlaybookSaving ? "Saving..." : "Create playbook"}
+                </button>
+              </div>
+            </form>
+
+            <div className="task-detail-list admin-compact-list" style={{ marginTop: "16px" }}>
+              {taskPlaybooks.length ? (
+                taskPlaybooks.map((playbook) => (
+                  <article key={playbook.id} className="detail-card">
+                    <div className="detail-card-top">
+                      <strong>{playbook.name}</strong>
+                      <span>{playbook.items.length} tasks</span>
+                    </div>
+                    <p>{playbook.description || "Reusable workflow."}</p>
+                    <div className="admin-user-actions">
+                      <span>{playbook.items.map((item) => item.title).join(", ")}</span>
+                      <button
+                        className="ghost-button compact danger-button"
+                        type="button"
+                        disabled={deletingPlaybookId === playbook.id}
+                        onClick={() => onDeletePlaybook(playbook.id)}
+                      >
+                        {deletingPlaybookId === playbook.id ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </article>
+                ))
+              ) : (
+                <div className="detail-empty">No playbooks yet.</div>
               )}
             </div>
           </section>

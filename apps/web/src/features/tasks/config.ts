@@ -1,4 +1,4 @@
-import type { RecurrenceRuleValue, TaskDraft, TaskImportance, TaskStatus, WorkspaceRole } from "../../api";
+import type { RecurrenceRuleValue, TaskDraft, TaskImportance, TaskStatus, TaskTemplate, WorkspaceRole } from "../../api";
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
   blocked: "Blocked",
@@ -58,7 +58,34 @@ function createEmptyDraft(): TaskDraft {
   };
 }
 
+function createDraftFromTemplate(template: TaskTemplate): TaskDraft {
+  const dueDate = getOffsetDate(template.dueDaysOffset);
+  const remindAt =
+    template.remindDaysOffset === null
+      ? ""
+      : (() => {
+          const date = new Date();
+          date.setDate(date.getDate() + template.dueDaysOffset - template.remindDaysOffset);
+          date.setHours(9, 0, 0, 0);
+          return date.toISOString().slice(0, 16);
+        })();
+
+  return {
+    title: template.title,
+    details: template.details,
+    links: template.links.join("\n"),
+    dueDate,
+    remindAt,
+    status: template.status,
+    assigneeId: "",
+    isRecurring: template.isRecurring,
+    recurrenceRule: template.recurrenceRule === "none" ? "daily" : template.recurrenceRule,
+    importance: template.importance,
+  };
+}
+
 export {
+  createDraftFromTemplate,
   createEmptyDraft,
   getOffsetDate,
   IMPORTANCE_LABELS,

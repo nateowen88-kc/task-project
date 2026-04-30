@@ -25,6 +25,37 @@ export type TaskCommentInput = {
   body: string;
 };
 
+export type TaskTemplateInput = {
+  name: string;
+  title: string;
+  details?: string;
+  status: StatusValue;
+  importance?: "low" | "medium" | "high";
+  dueDaysOffset: number;
+  remindDaysOffset?: number | null;
+  links?: string[];
+  isRecurring?: boolean;
+  recurrenceRule?: RecurrenceValue;
+};
+
+export type TaskPlaybookItemInput = {
+  title: string;
+  details?: string;
+  status: StatusValue;
+  importance?: "low" | "medium" | "high";
+  dueDaysOffset: number;
+  remindDaysOffset?: number | null;
+  links?: string[];
+  isRecurring?: boolean;
+  recurrenceRule?: RecurrenceValue;
+};
+
+export type TaskPlaybookInput = {
+  name: string;
+  description?: string;
+  items: TaskPlaybookItemInput[];
+};
+
 export type ApiTaskComment = {
   id: string;
   taskId: string;
@@ -118,6 +149,52 @@ export function validateTaskInput(input: Partial<TaskInput>): input is TaskInput
 
 export function validateTaskCommentInput(input: Partial<TaskCommentInput>): input is TaskCommentInput {
   return typeof input.body === "string" && input.body.trim().length > 0;
+}
+
+export function validateTaskTemplateInput(input: Partial<TaskTemplateInput>): input is TaskTemplateInput {
+  const recurrenceRule = input.recurrenceRule ?? "none";
+  return (
+    typeof input.name === "string" &&
+    input.name.trim().length > 0 &&
+    typeof input.title === "string" &&
+    input.title.trim().length > 0 &&
+    typeof input.status === "string" &&
+    isValidStatus(input.status) &&
+    typeof input.dueDaysOffset === "number" &&
+    Number.isInteger(input.dueDaysOffset) &&
+    typeof recurrenceRule === "string" &&
+    isValidRecurrence(recurrenceRule) &&
+    (typeof input.remindDaysOffset === "undefined" ||
+      input.remindDaysOffset === null ||
+      (typeof input.remindDaysOffset === "number" && Number.isInteger(input.remindDaysOffset)))
+  );
+}
+
+function isTaskPlaybookItemInput(input: Partial<TaskPlaybookItemInput>): input is TaskPlaybookItemInput {
+  const recurrenceRule = input.recurrenceRule ?? "none";
+  return (
+    typeof input.title === "string" &&
+    input.title.trim().length > 0 &&
+    typeof input.status === "string" &&
+    isValidStatus(input.status) &&
+    typeof input.dueDaysOffset === "number" &&
+    Number.isInteger(input.dueDaysOffset) &&
+    typeof recurrenceRule === "string" &&
+    isValidRecurrence(recurrenceRule) &&
+    (typeof input.remindDaysOffset === "undefined" ||
+      input.remindDaysOffset === null ||
+      (typeof input.remindDaysOffset === "number" && Number.isInteger(input.remindDaysOffset)))
+  );
+}
+
+export function validateTaskPlaybookInput(input: Partial<TaskPlaybookInput>): input is TaskPlaybookInput {
+  return (
+    typeof input.name === "string" &&
+    input.name.trim().length > 0 &&
+    Array.isArray(input.items) &&
+    input.items.length > 0 &&
+    input.items.every((item) => isTaskPlaybookItemInput(item))
+  );
 }
 
 export function formatActorName(user: { name: string } | null | undefined) {
