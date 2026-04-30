@@ -457,15 +457,13 @@ export default function App() {
     }
 
     const needsReports = !hasLoadedDirectReports;
-    const needsMembers = !hasLoadedWorkspaceMembers;
 
-    if (!needsReports && !needsMembers) {
+    if (!needsReports) {
       return;
     }
 
     void refreshAppData(session, {
       directReports: needsReports,
-      workspaceMembers: needsMembers,
       tasks: false,
       agenda: false,
       notifications: false,
@@ -474,7 +472,7 @@ export default function App() {
       adminInvites: false,
       adminWorkspaces: false,
     });
-  }, [activeView, hasLoadedDirectReports, hasLoadedWorkspaceMembers, refreshAppData, session]);
+  }, [activeView, hasLoadedDirectReports, refreshAppData, session]);
 
   useEffect(() => {
     if (
@@ -811,10 +809,8 @@ export default function App() {
 
           {activeView === "one-on-ones" && (
             <OneOnOnesView
-              currentUserId={session.user.id}
               directReports={directReports}
               setDirectReports={setDirectReports}
-              workspaceMembers={workspaceMembers}
               todayBadge={todayBadge}
               onError={setError}
             />

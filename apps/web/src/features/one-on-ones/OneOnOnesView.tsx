@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { DirectReport, OneOnOneCadence, OneOnOneMeetingStatus, WorkspaceMember } from "../../api";
+import type { DirectReport, OneOnOneCadence, OneOnOneMeetingStatus } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
@@ -29,17 +29,13 @@ function toLocalDateTime(value: string | null) {
 }
 
 export function OneOnOnesView({
-  currentUserId,
   directReports,
   setDirectReports,
-  workspaceMembers,
   todayBadge,
   onError,
 }: {
-  currentUserId: string;
   directReports: DirectReport[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
-  workspaceMembers: WorkspaceMember[];
   todayBadge: { month: string; day: number; weekday: string };
   onError: (message: string | null) => void;
 }) {
@@ -48,7 +44,6 @@ export function OneOnOnesView({
     setSelectedReportId,
     createForm,
     setCreateForm,
-    availableTeammates,
     isCreatingReport,
     savingReportId,
     deletingReportId,
@@ -68,10 +63,8 @@ export function OneOnOnesView({
     handleUpdateMeeting,
     handleDeleteMeeting,
   } = useOneOnOneActions({
-    currentUserId,
     directReports,
     setDirectReports,
-    workspaceMembers,
     onError,
   });
 
@@ -81,7 +74,9 @@ export function OneOnOnesView({
   );
 
   const [reportDraft, setReportDraft] = useState({
-    title: "",
+    reportName: "",
+    reportEmail: "",
+    role: "",
     cadence: "weekly" as OneOnOneCadence,
     nextMeetingAt: "",
     notes: "",
@@ -96,7 +91,9 @@ export function OneOnOnesView({
   useEffect(() => {
     if (!selectedReport) {
       setReportDraft({
-        title: "",
+        reportName: "",
+        reportEmail: "",
+        role: "",
         cadence: "weekly",
         nextMeetingAt: "",
         notes: "",
@@ -105,7 +102,9 @@ export function OneOnOnesView({
     }
 
     setReportDraft({
-      title: selectedReport.title,
+      reportName: selectedReport.reportName,
+      reportEmail: selectedReport.reportEmail ?? "",
+      role: selectedReport.role,
       cadence: selectedReport.cadence,
       nextMeetingAt: toLocalDateTime(selectedReport.nextMeetingAt),
       notes: selectedReport.notes,
@@ -157,26 +156,30 @@ export function OneOnOnesView({
             }}
           >
             <label>
-              Team member
-              <AppSelect
-                ariaLabel="Select teammate"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.teammateUserId}
-                options={availableTeammates.map((member) => ({
-                  value: member.id,
-                  label: `${member.name} (${member.email})`,
-                }))}
-                onChange={(value) => setCreateForm((current) => ({ ...current, teammateUserId: value }))}
+              Direct report name
+              <input
+                value={createForm.reportName}
+                onChange={(event) => setCreateForm((current) => ({ ...current, reportName: event.target.value }))}
+                required
               />
             </label>
 
             <label>
-              Role or focus
+              Email
               <input
-                value={createForm.title}
-                onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="Senior Engineer, PM, Designer..."
+                type="email"
+                value={createForm.reportEmail}
+                onChange={(event) => setCreateForm((current) => ({ ...current, reportEmail: event.target.value }))}
+                placeholder="optional"
+              />
+            </label>
+
+            <label>
+              Role
+              <input
+                value={createForm.role}
+                onChange={(event) => setCreateForm((current) => ({ ...current, role: event.target.value }))}
+                placeholder="Engineer, PM, Designer..."
                 required
               />
             </label>
@@ -239,10 +242,10 @@ export function OneOnOnesView({
                 >
                   <div className="admin-user-top">
                     <div>
-                      <h3>{report.teammateName}</h3>
-                      <p>{report.teammateEmail}</p>
+                      <h3>{report.reportName}</h3>
+                      <p>{report.reportEmail || "No email saved"}</p>
                       <div className="admin-user-meta">
-                        <span>{report.title}</span>
+                        <span>{report.role}</span>
                         <span>{cadenceOptions.find((option) => option.value === report.cadence)?.label}</span>
                         <span>
                           {report.nextMeetingAt
@@ -275,7 +278,7 @@ export function OneOnOnesView({
             <div className="section-heading">
               <SectionHeaderLead>
                 <p className="eyebrow">Relationship details</p>
-                <h2>{selectedReport.teammateName}</h2>
+                <h2>{selectedReport.reportName}</h2>
               </SectionHeaderLead>
             </div>
 
@@ -287,10 +290,27 @@ export function OneOnOnesView({
               }}
             >
               <label>
-                Role or focus
+                Direct report name
                 <input
-                  value={reportDraft.title}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, title: event.target.value }))}
+                  value={reportDraft.reportName}
+                  onChange={(event) => setReportDraft((current) => ({ ...current, reportName: event.target.value }))}
+                  required
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={reportDraft.reportEmail}
+                  onChange={(event) => setReportDraft((current) => ({ ...current, reportEmail: event.target.value }))}
+                  placeholder="optional"
+                />
+              </label>
+              <label>
+                Role
+                <input
+                  value={reportDraft.role}
+                  onChange={(event) => setReportDraft((current) => ({ ...current, role: event.target.value }))}
                   required
                 />
               </label>

@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useMemo, useState } from "react";
-import type { DirectReport, OneOnOneCadence, WorkspaceMember } from "../../api";
+import { useEffect, useState } from "react";
+import type { DirectReport, OneOnOneCadence } from "../../api";
 import {
   createDirectReport,
   createOneOnOneAgendaItem,
@@ -18,30 +18,28 @@ function toErrorMessage(error: unknown, fallback: string) {
 }
 
 export type DirectReportCreateForm = {
-  teammateUserId: string;
-  title: string;
+  reportName: string;
+  reportEmail: string;
+  role: string;
   cadence: OneOnOneCadence;
   nextMeetingAt: string;
   notes: string;
 };
 
 export function useOneOnOneActions({
-  currentUserId,
   directReports,
   setDirectReports,
-  workspaceMembers,
   onError,
 }: {
-  currentUserId: string;
   directReports: DirectReport[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
-  workspaceMembers: WorkspaceMember[];
   onError: (message: string | null) => void;
 }) {
   const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState<DirectReportCreateForm>({
-    teammateUserId: "",
-    title: "",
+    reportName: "",
+    reportEmail: "",
+    role: "",
     cadence: "weekly",
     nextMeetingAt: "",
     notes: "",
@@ -67,14 +65,9 @@ export function useOneOnOneActions({
     }
   }, [directReports, selectedReportId]);
 
-  const availableTeammates = useMemo(
-    () => workspaceMembers.filter((member) => member.id !== currentUserId),
-    [currentUserId, workspaceMembers],
-  );
-
   async function handleCreateReport() {
-    if (!createForm.teammateUserId) {
-      onError("Select a teammate first.");
+    if (!createForm.reportName.trim()) {
+      onError("Direct report name is required.");
       return;
     }
 
@@ -82,8 +75,9 @@ export function useOneOnOneActions({
       setIsCreatingReport(true);
       onError(null);
       const created = await createDirectReport({
-        teammateUserId: createForm.teammateUserId,
-        title: createForm.title,
+        reportName: createForm.reportName,
+        reportEmail: createForm.reportEmail || null,
+        role: createForm.role,
         cadence: createForm.cadence,
         nextMeetingAt: createForm.nextMeetingAt || null,
         notes: createForm.notes,
@@ -91,8 +85,9 @@ export function useOneOnOneActions({
       setDirectReports((current) => [...current, created]);
       setSelectedReportId(created.id);
       setCreateForm({
-        teammateUserId: "",
-        title: "",
+        reportName: "",
+        reportEmail: "",
+        role: "",
         cadence: "weekly",
         nextMeetingAt: "",
         notes: "",
@@ -104,12 +99,14 @@ export function useOneOnOneActions({
     }
   }
 
-  async function handleSaveReport(reportId: string, payload: Omit<DirectReportCreateForm, "teammateUserId">) {
+  async function handleSaveReport(reportId: string, payload: DirectReportCreateForm) {
     try {
       setSavingReportId(reportId);
       onError(null);
       const updated = await updateDirectReport(reportId, {
-        title: payload.title,
+        reportName: payload.reportName,
+        reportEmail: payload.reportEmail || null,
+        role: payload.role,
         cadence: payload.cadence,
         nextMeetingAt: payload.nextMeetingAt || null,
         notes: payload.notes,
@@ -278,7 +275,6 @@ export function useOneOnOneActions({
     setSelectedReportId,
     createForm,
     setCreateForm,
-    availableTeammates,
     isCreatingReport,
     savingReportId,
     deletingReportId,

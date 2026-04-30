@@ -236,10 +236,9 @@ export type OneOnOneMeeting = {
 
 export type DirectReport = {
   id: string;
-  teammateUserId: string;
-  teammateName: string;
-  teammateEmail: string;
-  title: string;
+  reportName: string;
+  reportEmail: string | null;
+  role: string;
   cadence: OneOnOneCadence;
   nextMeetingAt: string | null;
   notes: string;
@@ -250,15 +249,18 @@ export type DirectReport = {
 };
 
 export type CreateDirectReportPayload = {
-  teammateUserId: string;
-  title: string;
+  reportName: string;
+  reportEmail: string | null;
+  role: string;
   cadence: OneOnOneCadence;
   nextMeetingAt: string | null;
   notes: string;
 };
 
 export type UpdateDirectReportPayload = {
-  title: string;
+  reportName: string;
+  reportEmail: string | null;
+  role: string;
   cadence: OneOnOneCadence;
   nextMeetingAt: string | null;
   notes: string;

@@ -112,7 +112,6 @@ model User {
   taskTemplates         TaskTemplate[]    @relation("TaskTemplateCreator")
   taskPlaybooks         TaskPlaybook[]    @relation("TaskPlaybookCreator")
   managedReports        DirectReport[]    @relation("DirectReportManager")
-  managerRelationships  DirectReport[]    @relation("DirectReportTeammate")
 }
 
 model AppConfig {
@@ -318,8 +317,9 @@ model DirectReport {
   id             String              @id @default(cuid())
   workspaceId     String
   managerUserId  String
-  teammateUserId String
-  title          String              @default("")
+  reportName     String
+  reportEmail    String?
+  role           String              @default("")
   cadence        OneOnOneCadence     @default(WEEKLY)
   nextMeetingAt  DateTime?
   notes          String              @default("")
@@ -327,11 +327,9 @@ model DirectReport {
   updatedAt      DateTime            @default(now()) @updatedAt
   workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   manager        User                @relation("DirectReportManager", fields: [managerUserId], references: [id], onDelete: Cascade)
-  teammate       User                @relation("DirectReportTeammate", fields: [teammateUserId], references: [id], onDelete: Cascade)
   standingItems  OneOnOneAgendaItem[]
   meetings       OneOnOneMeeting[]
 
-  @@unique([workspaceId, managerUserId, teammateUserId])
   @@index([workspaceId, managerUserId, nextMeetingAt])
 }
 

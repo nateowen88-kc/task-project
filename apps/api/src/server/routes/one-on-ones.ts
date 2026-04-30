@@ -36,10 +36,9 @@ function toApiDirectReport(
 ) {
   return {
     id: report.id,
-    teammateUserId: report.teammateUserId,
-    teammateName: report.teammate.name,
-    teammateEmail: report.teammate.email,
-    title: report.title,
+    reportName: report.reportName,
+    reportEmail: report.reportEmail ?? null,
+    role: report.role,
     cadence: reverseCadenceMap[report.cadence],
     nextMeetingAt: report.nextMeetingAt ? report.nextMeetingAt.toISOString() : null,
     notes: report.notes,
@@ -79,17 +78,7 @@ async function fetchDirectReports(workspaceId: string, managerUserId: string) {
       workspaceId,
       managerUserId,
     },
-    include: {
-      teammate: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      standingItems: true,
-      meetings: true,
-    },
+    include: { standingItems: true, meetings: true },
     orderBy: [{ nextMeetingAt: "asc" }, { createdAt: "asc" }],
   });
 }
@@ -125,17 +114,18 @@ export function createOneOnOnesRouter() {
   router.post(API_ROUTES.oneOnOnes.reports, async (request, response) => {
     const auth = authOf(request);
     const input = request.body as {
-      teammateUserId?: string;
-      title?: string;
+      reportName?: string;
+      reportEmail?: string | null;
+      role?: string;
       cadence?: string;
       nextMeetingAt?: string | null;
       notes?: string;
     };
 
     if (
-      typeof input.teammateUserId !== "string" ||
-      !input.teammateUserId.trim() ||
-      typeof input.title !== "string" ||
+      typeof input.reportName !== "string" ||
+      !input.reportName.trim() ||
+      typeof input.role !== "string" ||
       typeof input.cadence !== "string" ||
       !isValidCadence(input.cadence)
     ) {
@@ -143,47 +133,18 @@ export function createOneOnOnesRouter() {
       return;
     }
 
-    if (input.teammateUserId === auth.user.id) {
-      response.status(400).json({ error: "You cannot create a 1:1 relationship with yourself." });
-      return;
-    }
-
-    const teammateMembership = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: auth.workspace.id,
-        userId: input.teammateUserId,
-      },
-      include: {
-        user: true,
-      },
-    });
-
-    if (!teammateMembership) {
-      response.status(400).json({ error: "Teammate must be a member of this workspace." });
-      return;
-    }
-
     const report = await prisma.directReport.create({
       data: {
         workspaceId: auth.workspace.id,
         managerUserId: auth.user.id,
-        teammateUserId: input.teammateUserId,
-        title: input.title.trim(),
+        reportName: input.reportName.trim(),
+        reportEmail: input.reportEmail?.trim() || null,
+        role: input.role.trim(),
         cadence: cadenceMap[input.cadence],
         nextMeetingAt: input.nextMeetingAt ? new Date(input.nextMeetingAt) : null,
         notes: input.notes?.trim() ?? "",
       },
-      include: {
-        teammate: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        standingItems: true,
-        meetings: true,
-      },
+      include: { standingItems: true, meetings: true },
     });
 
     response.status(201).json(toApiDirectReport(report));
@@ -192,14 +153,18 @@ export function createOneOnOnesRouter() {
   router.put("/api/one-on-ones/reports/:id", async (request, response) => {
     const auth = authOf(request);
     const input = request.body as {
-      title?: string;
+      reportName?: string;
+      reportEmail?: string | null;
+      role?: string;
       cadence?: string;
       nextMeetingAt?: string | null;
       notes?: string;
     };
 
     if (
-      typeof input.title !== "string" ||
+      typeof input.reportName !== "string" ||
+      !input.reportName.trim() ||
+      typeof input.role !== "string" ||
       typeof input.cadence !== "string" ||
       !isValidCadence(input.cadence)
     ) {
@@ -216,22 +181,14 @@ export function createOneOnOnesRouter() {
     const report = await prisma.directReport.update({
       where: { id: existing.id },
       data: {
-        title: input.title.trim(),
+        reportName: input.reportName.trim(),
+        reportEmail: input.reportEmail?.trim() || null,
+        role: input.role.trim(),
         cadence: cadenceMap[input.cadence],
         nextMeetingAt: input.nextMeetingAt ? new Date(input.nextMeetingAt) : null,
         notes: input.notes?.trim() ?? "",
       },
-      include: {
-        teammate: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        standingItems: true,
-        meetings: true,
-      },
+      include: { standingItems: true, meetings: true },
     });
 
     response.json(toApiDirectReport(report));
