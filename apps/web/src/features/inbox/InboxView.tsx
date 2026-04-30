@@ -9,7 +9,6 @@ type InboxViewProps = {
   todayBadge: { month: string; day: number; weekday: string };
   getItemWorkspaceLabel: (item: CapturedItem) => string | null;
   onCreateDemoSlackCapture: () => void;
-  onCreateDemoEmailCapture: () => void;
   onStartCaptureReview: (item: CapturedItem) => void;
   onDiscardCapture: (id: string) => void;
 };
@@ -20,7 +19,6 @@ export function InboxView({
   todayBadge,
   getItemWorkspaceLabel,
   onCreateDemoSlackCapture,
-  onCreateDemoEmailCapture,
   onStartCaptureReview,
   onDiscardCapture,
 }: InboxViewProps) {
@@ -31,7 +29,7 @@ export function InboxView({
       <SectionHeader
         wide
         eyebrow="Task Inbox"
-        title="Task suggestions sent from slack and email messages"
+        title="Task suggestions captured from Slack messages"
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
         actions={
           <>
@@ -39,9 +37,6 @@ export function InboxView({
             <div className="capture-header-actions">
               <button className="ghost-button" type="button" onClick={onCreateDemoSlackCapture}>
                 Add sample Slack item
-              </button>
-              <button className="ghost-button" type="button" onClick={onCreateDemoEmailCapture}>
-                Add sample email
               </button>
             </div>
           </>
@@ -92,7 +87,7 @@ export function InboxView({
         ) : (
           <div className="empty-state capture-empty">
             <p>No captured items waiting for review.</p>
-            <span>Add a sample Slack item now. Email and real Slack ingestion can plug into this inbox next.</span>
+            <span>Add a sample Slack item now to test the inbox workflow.</span>
           </div>
         )}
       </div>

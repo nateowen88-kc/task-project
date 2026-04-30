@@ -65,15 +65,6 @@ function buildWorkspaceDraft(workspace: AdminWorkspace): WorkspaceSettingsFormSt
   };
 }
 
-function buildInboundEmailAddress(workspace: AdminWorkspace, inboundDomain: string) {
-  const domain = inboundDomain.trim();
-  if (!domain) {
-    return null;
-  }
-
-  return `${workspace.inboundEmailKey}@${domain}`;
-}
-
 export function AdminView({
   adminUsers,
   adminWorkspaces,
@@ -456,7 +447,6 @@ export function AdminView({
                 adminWorkspaces.map((workspace) => {
                   const draft = workspaceDrafts[workspace.id] ?? buildWorkspaceDraft(workspace);
                   const isActive = workspace.deactivatedAt === null;
-                  const inboundEmailAddress = buildInboundEmailAddress(workspace, appConfigForm.emailInboundDomain);
 
                   return (
                     <article key={workspace.id} className="detail-card">
@@ -468,22 +458,6 @@ export function AdminView({
                       <p>
                         {workspace.slug} · {workspace.memberCount} member{workspace.memberCount === 1 ? "" : "s"}
                       </p>
-
-                      <div className="detail-card" style={{ marginTop: "0.75rem" }}>
-                        <div className="detail-card-top">
-                          <strong>Inbound email</strong>
-                          {inboundEmailAddress && (
-                            <button
-                              className="ghost-button compact"
-                              type="button"
-                              onClick={() => void navigator.clipboard.writeText(inboundEmailAddress)}
-                            >
-                              Copy address
-                            </button>
-                          )}
-                        </div>
-                        <p>{inboundEmailAddress ?? `Set an inbound domain in Integrations to activate ${workspace.inboundEmailKey}.`}</p>
-                      </div>
 
                       <div className="task-form workspace-settings-grid">
                         <label>
@@ -613,43 +587,6 @@ export function AdminView({
               </label>
 
               <label>
-                Resend API key
-                <input
-                  type="password"
-                  value={appConfigForm.resendApiKey}
-                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendApiKey: event.target.value }))}
-                  autoComplete="off"
-                />
-              </label>
-
-              <label>
-                Resend from email
-                <input
-                  value={appConfigForm.resendFromEmail}
-                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendFromEmail: event.target.value }))}
-                  placeholder="TimeSmith <hello@updates.timesmithhq.com>"
-                />
-              </label>
-
-              <label>
-                Resend reply-to email
-                <input
-                  value={appConfigForm.resendReplyToEmail}
-                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, resendReplyToEmail: event.target.value }))}
-                  placeholder="support@timesmithhq.com"
-                />
-              </label>
-
-              <label>
-                Email inbound domain
-                <input
-                  value={appConfigForm.emailInboundDomain}
-                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, emailInboundDomain: event.target.value }))}
-                  placeholder="updates.timesmithhq.com"
-                />
-              </label>
-
-              <label>
                 Outlook client ID
                 <input
                   value={appConfigForm.outlookClientId}
@@ -704,20 +641,10 @@ export function AdminView({
                 Disable Slack signature verification
               </label>
 
-              <label>
-                Email inbound token
-                <input
-                  type="password"
-                  value={appConfigForm.emailInboundToken}
-                  onChange={(event) => onAppConfigFormChange((current) => ({ ...current, emailInboundToken: event.target.value }))}
-                  autoComplete="off"
-                />
-              </label>
-
               <div className="detail-card">
                 <p>
                   Database URL, CORS, cookie domain, and platform runtime settings remain environment configuration.
-                  This page manages app-level integrations and delivery settings.
+                  This page manages app-level integrations and security settings.
                 </p>
               </div>
 

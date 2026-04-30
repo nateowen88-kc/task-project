@@ -77,16 +77,11 @@ function createEmptyWorkspaceForm(): WorkspaceFormState {
 function createEmptyAppConfigForm(): AppConfigFormState {
   return {
     appBaseUrl: "",
-    resendApiKey: "",
-    resendFromEmail: "",
-    resendReplyToEmail: "",
-    emailInboundDomain: "",
     outlookClientId: "",
     outlookClientSecret: "",
     outlookTenantId: "",
     slackSigningSecret: "",
     slackDisableSignatureVerification: false,
-    emailInboundToken: "",
   };
 }
 
@@ -184,11 +179,7 @@ export function useAdminActions({
       setIsPasswordResettingUserId(user.id);
       onError(null);
       const result = await resetAdminUserPassword(user.id);
-      window.alert(
-        result.emailSent
-          ? `Password recovery email sent to ${user.email}.`
-          : `Password recovery email was not sent because email delivery is not fully configured.`,
-      );
+      window.alert(`Temporary password for ${user.email}: ${result.temporaryPassword}`);
     } catch (error) {
       onError(toErrorMessage(error, "Could not reset password."));
     } finally {

@@ -3,18 +3,14 @@ import express from "express";
 
 import { getAuthContext, resolveCaptureWorkspaceId } from "../lib/auth.js";
 import { prisma } from "../lib/db.js";
-import { toApiCapturedItem } from "../lib/serializers.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import {
   getSlackDeepLink,
   parseSlackFormPayload,
-  upsertEmailCapturedItem,
   upsertSlackCapturedItem,
   verifySlackSignature,
-  type EmailInboundInput,
   type SlackInteractionPayload,
 } from "../services/capture-service.js";
-import { getAdminAppConfig } from "../services/app-config-service.js";
 import {
   buildOutlookAuthorizeUrl,
   clearOutlookStateCookie,
@@ -28,6 +24,7 @@ import {
   serializeOutlookStateCookie,
   upsertOutlookConnectionForUser,
 } from "../services/outlook-calendar-service.js";
+import { getAdminAppConfig } from "../services/app-config-service.js";
 
 export const slackFormMiddleware = express.urlencoded({
   extended: false,
@@ -305,57 +302,5 @@ export function createIntegrationsRouter() {
     console.log(`[slack] slash command saved capture ${item.id} for text "${item.title}"`);
     response.status(200).send(`Saved to TimeSmith inbox: ${item.title}`);
   });
-
-  router.post(API_ROUTES.integrations.emailInbound, async (request, response) => {
-    const input = request.body as Partial<EmailInboundInput>;
-    const appConfig = await getAdminAppConfig();
-    const authorization = request.header("authorization");
-    const directTokenHeader = request.header("x-email-inbound-token");
-    const bearerToken = authorization?.replace(/^Bearer\\s+/i, "").trim() ?? null;
-    const expectedToken = appConfig.emailInboundToken.trim() || null;
-    const bodyToken = input.token?.trim() ?? null;
-
-    if (
-      !expectedToken ||
-      (bearerToken !== expectedToken && directTokenHeader?.trim() !== expectedToken && bodyToken !== expectedToken)
-    ) {
-      response.status(401).json({ error: "Invalid email inbound token." });
-      return;
-    }
-
-    if (typeof input.subject !== "string" || input.subject.trim().length === 0) {
-      response.status(400).json({ error: "Email subject is required." });
-      return;
-    }
-
-    const recipient = input.to?.trim() || null;
-    const workspaceId = await resolveCaptureWorkspaceId(
-      input.workspaceSlug ?? request.header("x-timesmith-workspace"),
-      recipient,
-    );
-    const receivedAt = input.receivedAt ? new Date(input.receivedAt) : new Date();
-    const body = input.text?.trim() || input.html?.trim() || "";
-    const sender = input.from?.trim() || null;
-    const externalId = input.messageId?.trim() || crypto.randomUUID();
-
-    const item = await upsertEmailCapturedItem({
-      workspaceId,
-      title: input.subject.trim(),
-      body,
-      externalId,
-      sender,
-      sourceLabel: recipient ? `To: ${recipient}` : "Forwarded email",
-      sourceUrl: input.sourceUrl?.trim() || null,
-      receivedAt,
-    });
-
-    const hydratedItem = await prisma.capturedItem.findUniqueOrThrow({
-      where: { id: item.id },
-      include: { workspace: true },
-    });
-
-    response.status(201).json(toApiCapturedItem(hydratedItem));
-  });
-
   return router;
 }

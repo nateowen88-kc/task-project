@@ -6,10 +6,8 @@ import { prisma } from "../lib/db.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import type {
   AcceptWorkspaceInvitePayload,
-  ForgotPasswordPayload,
   LoginPayload,
   RegisterPayload,
-  ResetPasswordPayload,
   SwitchWorkspacePayload,
 } from "../../../../../src/shared/api-types.js";
 import {
@@ -29,10 +27,6 @@ import {
   verifyPassword,
 } from "../lib/auth.js";
 import { toApiWorkspaceInvite } from "../lib/serializers.js";
-import { createPasswordResetToken, consumePasswordResetToken } from "../services/password-reset-service.js";
-import { PasswordResetTokenType } from "@prisma/client";
-import { resolveAppBaseUrl } from "../services/app-config-service.js";
-import { sendPasswordRecoveryEmail } from "../services/email-service.js";
 
 function validateLoginInput(input: Partial<LoginPayload>): input is LoginPayload {
   return typeof input.email === "string" && typeof input.password === "string";
@@ -57,19 +51,6 @@ function validateAcceptInviteInput(input: Partial<AcceptWorkspaceInvitePayload>)
     input.email.includes("@") &&
     typeof input.name === "string" &&
     input.name.trim().length > 1 &&
-    typeof input.password === "string" &&
-    input.password.length >= 8
-  );
-}
-
-function validateForgotPasswordInput(input: Partial<ForgotPasswordPayload>): input is ForgotPasswordPayload {
-  return typeof input.email === "string" && input.email.includes("@");
-}
-
-function validateResetPasswordInput(input: Partial<ResetPasswordPayload>): input is ResetPasswordPayload {
-  return (
-    typeof input.token === "string" &&
-    input.token.trim().length > 0 &&
     typeof input.password === "string" &&
     input.password.length >= 8
   );
@@ -396,70 +377,6 @@ export function createAuthRouter() {
     const session = await createSession(user.id);
     response.setHeader("Set-Cookie", serializeSessionCookie(session.token, session.expiresAt));
     response.json(await toApiSession(auth.user, auth.workspace.id));
-  });
-
-  router.post(API_ROUTES.auth.forgotPassword.replace("/api/auth", ""), async (request, response) => {
-    const input = request.body as Partial<ForgotPasswordPayload>;
-
-    if (!validateForgotPasswordInput(input)) {
-      response.status(400).json({ error: "Email is required." });
-      return;
-    }
-
-    const email = input.email.trim().toLowerCase();
-    const user = await prisma.user.findUnique({ where: { email } });
-
-    if (user) {
-      try {
-        const { token } = await createPasswordResetToken(user.id, PasswordResetTokenType.PASSWORD_RECOVERY);
-        const baseUrl = await resolveAppBaseUrl(request.header("origin"));
-        if (baseUrl) {
-          await sendPasswordRecoveryEmail({
-            to: user.email,
-            recipientName: user.name,
-            resetUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
-          });
-        }
-      } catch (error) {
-        console.error("[email] failed to send password recovery email", error);
-      }
-    }
-
-    response.status(200).json({ ok: true });
-  });
-
-  router.post(API_ROUTES.auth.resetPassword.replace("/api/auth", ""), async (request, response) => {
-    const input = request.body as Partial<ResetPasswordPayload>;
-
-    if (!validateResetPasswordInput(input)) {
-      response.status(400).json({ error: "A valid reset token and 8+ character password are required." });
-      return;
-    }
-
-    const consumed = await consumePasswordResetToken(input.token.trim());
-
-    if (!consumed) {
-      response.status(400).json({ error: "This reset link is invalid or has expired." });
-      return;
-    }
-
-    await prisma.user.update({
-      where: { id: consumed.userId },
-      data: {
-        passwordHash: hashPassword(input.password),
-      },
-    });
-
-    const session = await createSession(consumed.userId);
-    const auth = await buildAuthContext(consumed.userId);
-
-    if (!auth) {
-      response.status(403).json({ error: "This account is not assigned to a workspace yet." });
-      return;
-    }
-
-    response.setHeader("Set-Cookie", serializeSessionCookie(session.token, session.expiresAt));
-    response.status(200).json(await toApiSession(auth.user, auth.workspace.id));
   });
 
   router.post(API_ROUTES.auth.logout.replace("/api/auth", ""), async (request, response) => {

@@ -2,10 +2,8 @@ import { request, resolveRequestInput } from "./client";
 import type {
   AcceptWorkspaceInvitePayload,
   AuthSession,
-  ForgotPasswordPayload,
   LoginPayload,
   RegisterPayload,
-  ResetPasswordPayload,
   WorkspaceInviteLookup,
 } from "./types";
 import { API_ROUTES } from "../../../../src/shared/api-routes";
@@ -41,20 +39,6 @@ function register(payload: RegisterPayload) {
   });
 }
 
-function forgotPassword(payload: ForgotPasswordPayload) {
-  return request<{ ok: true }>(API_ROUTES.auth.forgotPassword, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
-function resetPassword(payload: ResetPasswordPayload) {
-  return request<AuthSession>(API_ROUTES.auth.resetPassword, {
-    method: "POST",
-    body: JSON.stringify(payload),
-  });
-}
-
 function fetchInvite(token: string) {
   return request<WorkspaceInviteLookup>(API_ROUTES.auth.invite(token));
 }
@@ -79,4 +63,4 @@ async function switchWorkspace(workspaceId: string) {
   });
 }
 
-export { acceptInvite, fetchInvite, fetchSession, forgotPassword, login, logout, register, resetPassword, switchWorkspace };
+export { acceptInvite, fetchInvite, fetchSession, login, logout, register, switchWorkspace };

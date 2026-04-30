@@ -89,7 +89,6 @@ export default function App() {
   const [hideDoneInWorkflow, setHideDoneInWorkflow] = useState(false);
   const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>("all");
   const [inviteLookup, setInviteLookup] = useState<WorkspaceInviteLookup | null>(null);
-  const [resetToken, setResetToken] = useState<string | null>(null);
 
   const canManageUsers = Boolean(session?.permissions.canManageUsers);
   const canCreateWorkspaces = Boolean(session?.permissions.canCreateWorkspaces);
@@ -249,7 +248,6 @@ export default function App() {
   const {
     handleDiscardCapture,
     handleCreateDemoSlackCapture,
-    handleCreateDemoEmailCapture,
   } = useInboxActions({
     refreshAppData,
     onError: setError,
@@ -473,30 +471,19 @@ export default function App() {
         window.history.replaceState({}, "", nextUrl);
       }
       setInviteLookup(null);
-      setResetToken(null);
       return;
     }
 
     const params = new URLSearchParams(window.location.search);
-    const nextResetToken = params.get("reset");
-    if (nextResetToken) {
-      setInviteLookup(null);
-      setResetToken(nextResetToken);
-      setAuthMode("reset-password");
-      return;
-    }
-
     const token = params.get("invite");
     if (!token) {
       setInviteLookup(null);
-      setResetToken(null);
       return;
     }
 
     void fetchInvite(token)
       .then((result) => {
         setInviteLookup(result);
-        setResetToken(null);
         setAuthMode("register");
       })
       .catch((inviteError) => {
@@ -517,7 +504,6 @@ export default function App() {
         isSubmitting={isAuthSubmitting}
         mode={authMode}
         inviteLookup={inviteLookup}
-        resetToken={resetToken}
         onModeChange={setAuthMode}
         onSubmit={handleAuthSubmit}
       />
@@ -612,7 +598,6 @@ export default function App() {
               todayBadge={todayBadge}
               getItemWorkspaceLabel={getItemWorkspaceLabel}
               onCreateDemoSlackCapture={() => void handleCreateDemoSlackCapture()}
-              onCreateDemoEmailCapture={() => void handleCreateDemoEmailCapture()}
               onStartCaptureReview={startCaptureReview}
               onDiscardCapture={(itemId) => void handleDiscardCapture(itemId)}
             />

@@ -7,8 +7,6 @@ export const API_ROUTES = {
     register: "/api/auth/register",
     invite: (token: string) => `/api/auth/invite/${token}`,
     acceptInvite: "/api/auth/accept-invite",
-    forgotPassword: "/api/auth/forgot-password",
-    resetPassword: "/api/auth/reset-password",
     logout: "/api/auth/logout",
     workspace: "/api/auth/workspace",
   },
@@ -46,7 +44,6 @@ export const API_ROUTES = {
     accept: (id: string) => `/api/captured-items/${id}/accept`,
     discard: (id: string) => `/api/captured-items/${id}/discard`,
     demoSlack: "/api/captured-items/demo/slack",
-    demoEmail: "/api/captured-items/demo/email",
   },
   notifications: {
     list: "/api/notifications",
@@ -59,7 +56,6 @@ export const API_ROUTES = {
   integrations: {
     slackInteractions: "/api/integrations/slack/interactions",
     slackCommands: "/api/integrations/slack/commands",
-    emailInbound: "/api/integrations/email/inbound",
     outlookStatus: "/api/integrations/outlook/status",
     outlookConnect: "/api/integrations/outlook/connect",
     outlookCallback: "/api/integrations/outlook/callback",

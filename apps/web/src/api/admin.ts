@@ -98,7 +98,7 @@ async function resetAdminUserPassword(userId: string) {
     throw new Error(payload.error ?? "Unable to reset password.");
   }
 
-  return (await response.json()) as { emailSent: boolean };
+  return (await response.json()) as { temporaryPassword: string };
 }
 
 export {

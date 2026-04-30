@@ -26,15 +26,8 @@ function createDemoSlackCapture() {
   });
 }
 
-function createDemoEmailCapture() {
-  return request<CapturedItem>(API_ROUTES.capturedItems.demoEmail, {
-    method: "POST",
-  });
-}
-
 export {
   acceptCapturedItem,
-  createDemoEmailCapture,
   createDemoSlackCapture,
   discardCapturedItem,
   fetchCapturedItems,

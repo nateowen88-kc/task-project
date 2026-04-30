@@ -4,6 +4,7 @@ import { WorkspaceInviteRole, WorkspaceRole } from "@prisma/client";
 import { prisma } from "../lib/db.js";
 import {
   canResetPasswords,
+  createTemporaryPassword,
   getAuthContext,
   hashPassword,
   isWorkspaceOwner,
@@ -11,11 +12,6 @@ import {
   workspaceWhereForUser,
 } from "../lib/auth.js";
 import { toApiAdminUser, toApiWorkspaceInvite } from "../lib/serializers.js";
-import {
-  sendAccountSetupEmail,
-  sendPasswordRecoveryEmail,
-  sendWorkspaceInviteEmail,
-} from "../services/email-service.js";
 import {
   createWorkspaceWithOwner,
   createWorkspaceMembership,
@@ -39,12 +35,9 @@ import type {
 } from "../../../../../src/shared/api-types.js";
 import {
   getAdminAppConfig,
-  resolveAppBaseUrl,
   updateAdminAppConfig,
   validateUpdateAppConfigInput,
 } from "../services/app-config-service.js";
-import { createPasswordResetToken } from "../services/password-reset-service.js";
-import { PasswordResetTokenType } from "@prisma/client";
 import {
   getOrigin,
   getPathname,
@@ -186,21 +179,6 @@ export default async function adminHandler(request: NativeRequest, response: Nat
       });
     }
 
-    try {
-      const { token } = await createPasswordResetToken(membership.userId, PasswordResetTokenType.ACCOUNT_SETUP);
-      const baseUrl = await resolveAppBaseUrl(getOrigin(request));
-      if (baseUrl) {
-        await sendAccountSetupEmail({
-          to: membership.user.email,
-          recipientName: membership.user.name,
-          workspaceName: auth.workspace.name,
-          setupUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
-        });
-      }
-    } catch (error) {
-      console.error("[email] failed to send account setup email", error);
-    }
-
     sendJson(response, 201, toApiAdminUser(membership));
     return;
   }
@@ -248,18 +226,6 @@ export default async function adminHandler(request: NativeRequest, response: Nat
       },
     });
 
-    try {
-      await sendWorkspaceInviteEmail({
-        to: invite.email,
-        inviteUrl: toApiWorkspaceInvite(invite, getInviteBaseUrl(request)).inviteUrl,
-        workspaceName: invite.workspace.name,
-        inviterName: auth.user.name,
-        role: invite.role === WorkspaceInviteRole.ADMIN ? "admin" : "user",
-      });
-    } catch (error) {
-      console.error("[email] failed to send workspace invite", error);
-    }
-
     sendJson(response, 201, toApiWorkspaceInvite(invite, getInviteBaseUrl(request)));
     return;
   }
@@ -281,20 +247,6 @@ export default async function adminHandler(request: NativeRequest, response: Nat
     try {
       const result = await prisma.$transaction((tx) => createWorkspaceWithOwner(tx, input));
       const workspace = await fetchWorkspaceForAdmin(prisma, result.workspace.id);
-      try {
-        const { token } = await createPasswordResetToken(result.owner.id, PasswordResetTokenType.ACCOUNT_SETUP);
-        const baseUrl = await resolveAppBaseUrl(getOrigin(request));
-        if (baseUrl && workspace) {
-          await sendAccountSetupEmail({
-            to: result.owner.email,
-            recipientName: result.owner.name,
-            workspaceName: workspace.name,
-            setupUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
-          });
-        }
-      } catch (emailError) {
-        console.error("[email] failed to send workspace owner setup email", emailError);
-      }
       sendJson(response, 201, workspace ? toApiAdminWorkspace(workspace) : null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Could not create workspace.";
@@ -454,24 +406,15 @@ export default async function adminHandler(request: NativeRequest, response: Nat
       return;
     }
 
-    const { token } = await createPasswordResetToken(membership.userId, PasswordResetTokenType.PASSWORD_RECOVERY);
-    const baseUrl = await resolveAppBaseUrl(getOrigin(request));
+    const temporaryPassword = createTemporaryPassword();
+    await prisma.user.update({
+      where: { id: membership.userId },
+      data: {
+        passwordHash: hashPassword(temporaryPassword),
+      },
+    });
 
-    if (baseUrl) {
-      try {
-        await sendPasswordRecoveryEmail({
-          to: membership.user.email,
-          recipientName: membership.user.name,
-          resetUrl: `${baseUrl}/?reset=${encodeURIComponent(token)}`,
-        });
-        sendJson(response, 200, { emailSent: true });
-        return;
-      } catch (error) {
-        console.error("[email] failed to send password recovery email", error);
-      }
-    }
-
-    sendJson(response, 200, { emailSent: false });
+    sendJson(response, 200, { temporaryPassword });
     return;
   }
 

@@ -1,5 +1,5 @@
 import { FormEvent, useState } from "react";
-import { acceptInvite, AuthSession, forgotPassword, login, logout, register, resetPassword } from "../../api";
+import { acceptInvite, AuthSession, login, logout, register } from "../../api";
 import type { AuthMode } from "./AuthCard";
 
 function toErrorMessage(error: unknown, fallback: string) {
@@ -39,16 +39,6 @@ export function useAuthActions({
               email: String(formData.get("email") ?? ""),
               password: String(formData.get("password") ?? ""),
             })
-          : authMode === "forgot-password"
-            ? (await forgotPassword({
-                email: String(formData.get("email") ?? ""),
-              }),
-              null)
-          : authMode === "reset-password"
-            ? await resetPassword({
-                token: String(formData.get("resetToken") ?? ""),
-                password: String(formData.get("password") ?? ""),
-              })
           : authMode === "login"
           ? await login({
               email: String(formData.get("email") ?? ""),
@@ -63,9 +53,6 @@ export function useAuthActions({
 
       if (nextSession) {
         await applyAuthenticatedSession(nextSession);
-      } else {
-        setAuthNotice("If that account exists, a password recovery email has been sent.");
-        setAuthMode("login");
       }
     } catch (error) {
       onError(toErrorMessage(error, "Could not authenticate."));

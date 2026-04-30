@@ -14,7 +14,6 @@ import { notifyTaskAssignment } from "../services/notification-service.js";
 import {
   captureSourceMap,
   normalizeCaptureLinks,
-  upsertEmailCapturedItem,
   validateCaptureInput,
   type CaptureInput,
 } from "../services/capture-service.js";
@@ -132,28 +131,6 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
       include: {
         workspace: true,
       },
-    });
-
-    const hydratedItem = await prisma.capturedItem.findUniqueOrThrow({
-      where: { id: item.id },
-      include: { workspace: true },
-    });
-
-    sendJson(response, 201, toApiCapturedItem(hydratedItem));
-    return;
-  }
-
-  if (method === "POST" && pathname === API_ROUTES.capturedItems.demoEmail) {
-    const timestamp = new Date();
-    const item = await upsertEmailCapturedItem({
-      workspaceId: auth.workspace.id,
-      title: "Client follow-up on Q2 launch plan",
-      body: "Can you break this thread into tasks, note owners, and make sure we reply by Friday afternoon?",
-      externalId: `demo-email-${timestamp.getTime()}`,
-      sender: "jordan@example.com",
-      sourceLabel: "To: founder@timesmith.test",
-      sourceUrl: "mailto:founder@timesmith.test",
-      receivedAt: timestamp,
     });
 
     const hydratedItem = await prisma.capturedItem.findUniqueOrThrow({

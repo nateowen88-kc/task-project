@@ -1,4 +1,4 @@
-import { createDemoEmailCapture, createDemoSlackCapture, discardCapturedItem } from "../../api";
+import { createDemoSlackCapture, discardCapturedItem } from "../../api";
 
 function toErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -32,20 +32,8 @@ export function useInboxActions({ refreshAppData, onError }: UseInboxActionsOpti
     }
   }
 
-  async function handleCreateDemoEmailCapture() {
-    onError(null);
-
-    try {
-      await createDemoEmailCapture();
-      await refreshAppData();
-    } catch (error) {
-      onError(toErrorMessage(error, "Could not create email capture."));
-    }
-  }
-
   return {
     handleDiscardCapture,
     handleCreateDemoSlackCapture,
-    handleCreateDemoEmailCapture,
   };
 }
