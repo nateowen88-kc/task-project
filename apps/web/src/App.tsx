@@ -505,6 +505,12 @@ export default function App() {
   }, [hasLoadedWorkspaceMembers, isModalOpen, refreshAppData, session]);
 
   useEffect(() => {
+    setTaskTemplates([]);
+    setTaskPlaybooks([]);
+    setHasLoadedWorkflowAssets(false);
+  }, [session?.workspace.id]);
+
+  useEffect(() => {
     if (session) {
       const params = new URLSearchParams(window.location.search);
       const calendar = params.get("calendar");
@@ -695,12 +701,6 @@ export default function App() {
       setRunningPlaybookId(null);
     }
   }
-
-  useEffect(() => {
-    setTaskTemplates([]);
-    setTaskPlaybooks([]);
-    setHasLoadedWorkflowAssets(false);
-  }, [session?.workspace.id]);
 
   return (
     <>
