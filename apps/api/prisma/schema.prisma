@@ -74,6 +74,19 @@ enum CalendarProvider {
   OUTLOOK
 }
 
+enum OneOnOneCadence {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  AD_HOC
+}
+
+enum OneOnOneMeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
 model User {
   id              String            @id @default(cuid())
   email           String            @unique
@@ -98,6 +111,8 @@ model User {
   calendarConnections   CalendarConnection[]
   taskTemplates         TaskTemplate[]    @relation("TaskTemplateCreator")
   taskPlaybooks         TaskPlaybook[]    @relation("TaskPlaybookCreator")
+  managedReports        DirectReport[]    @relation("DirectReportManager")
+  managerRelationships  DirectReport[]    @relation("DirectReportTeammate")
 }
 
 model AppConfig {
@@ -155,6 +170,8 @@ model Workspace {
   invites       WorkspaceInvite[]
   taskTemplates TaskTemplate[]
   taskPlaybooks TaskPlaybook[]
+  directReports DirectReport[]
+  oneOnOneMeetings OneOnOneMeeting[]
 }
 
 model WorkspaceMember {
@@ -295,6 +312,59 @@ model TaskPlaybookItem {
   templateTask     Task?            @relation(fields: [templateTaskId], references: [id], onDelete: SetNull)
 
   @@index([playbookId, sortOrder])
+}
+
+model DirectReport {
+  id             String              @id @default(cuid())
+  workspaceId     String
+  managerUserId  String
+  teammateUserId String
+  title          String              @default("")
+  cadence        OneOnOneCadence     @default(WEEKLY)
+  nextMeetingAt  DateTime?
+  notes          String              @default("")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @default(now()) @updatedAt
+  workspace      Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  manager        User                @relation("DirectReportManager", fields: [managerUserId], references: [id], onDelete: Cascade)
+  teammate       User                @relation("DirectReportTeammate", fields: [teammateUserId], references: [id], onDelete: Cascade)
+  standingItems  OneOnOneAgendaItem[]
+  meetings       OneOnOneMeeting[]
+
+  @@unique([workspaceId, managerUserId, teammateUserId])
+  @@index([workspaceId, managerUserId, nextMeetingAt])
+}
+
+model OneOnOneAgendaItem {
+  id             String        @id @default(cuid())
+  directReportId String
+  body           String
+  isPrivate      Boolean       @default(true)
+  sortOrder      Int           @default(0)
+  completedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now()) @updatedAt
+  directReport   DirectReport  @relation(fields: [directReportId], references: [id], onDelete: Cascade)
+
+  @@index([directReportId, sortOrder])
+}
+
+model OneOnOneMeeting {
+  id             String                @id @default(cuid())
+  workspaceId     String
+  directReportId String
+  scheduledFor   DateTime
+  status         OneOnOneMeetingStatus @default(SCHEDULED)
+  sharedNotes    String                @default("")
+  privateNotes   String                @default("")
+  completedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @default(now()) @updatedAt
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  directReport   DirectReport          @relation(fields: [directReportId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, scheduledFor])
+  @@index([directReportId, scheduledFor])
 }
 
 model TaskLink {

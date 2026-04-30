@@ -8,6 +8,8 @@ export type WorkspaceRole = "owner" | "admin" | "user";
 export type WorkspaceInviteRole = "admin" | "user";
 export type WorkspaceInviteStatus = "pending" | "accepted" | "revoked" | "expired";
 export type NotificationType = "task-assigned" | "comment-added" | "task-due" | "task-overdue";
+export type OneOnOneCadence = "weekly" | "biweekly" | "monthly" | "ad-hoc";
+export type OneOnOneMeetingStatus = "scheduled" | "completed" | "canceled";
 
 export type AppPermissions = {
   canManageUsers: boolean;
@@ -209,6 +211,79 @@ export type TaskPlaybookPayload = {
     recurrenceRule: RecurrenceRuleValue;
     links: string[];
   }>;
+};
+
+export type OneOnOneAgendaItem = {
+  id: string;
+  body: string;
+  isPrivate: boolean;
+  sortOrder: number;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OneOnOneMeeting = {
+  id: string;
+  scheduledFor: string;
+  status: OneOnOneMeetingStatus;
+  sharedNotes: string;
+  privateNotes: string;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type DirectReport = {
+  id: string;
+  teammateUserId: string;
+  teammateName: string;
+  teammateEmail: string;
+  title: string;
+  cadence: OneOnOneCadence;
+  nextMeetingAt: string | null;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+  standingItems: OneOnOneAgendaItem[];
+  meetings: OneOnOneMeeting[];
+};
+
+export type CreateDirectReportPayload = {
+  teammateUserId: string;
+  title: string;
+  cadence: OneOnOneCadence;
+  nextMeetingAt: string | null;
+  notes: string;
+};
+
+export type UpdateDirectReportPayload = {
+  title: string;
+  cadence: OneOnOneCadence;
+  nextMeetingAt: string | null;
+  notes: string;
+};
+
+export type CreateOneOnOneAgendaItemPayload = {
+  body: string;
+  isPrivate: boolean;
+};
+
+export type UpdateOneOnOneAgendaItemPayload = {
+  body: string;
+  isPrivate: boolean;
+  completed: boolean;
+};
+
+export type CreateOneOnOneMeetingPayload = {
+  scheduledFor: string;
+};
+
+export type UpdateOneOnOneMeetingPayload = {
+  scheduledFor: string;
+  status: OneOnOneMeetingStatus;
+  sharedNotes: string;
+  privateNotes: string;
 };
 
 export type WorkspaceMember = {

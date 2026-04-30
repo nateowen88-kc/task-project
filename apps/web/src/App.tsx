@@ -24,6 +24,7 @@ import { SideRail } from "./features/layout/SideRail";
 import { InboxView } from "./features/inbox/InboxView";
 import { NotificationsView } from "./features/notifications/NotificationsView";
 import { AdminView } from "./features/admin/AdminView";
+import { OneOnOnesView } from "./features/one-on-ones/OneOnOnesView";
 import {
   AppView,
   VIEW_ICONS,
@@ -75,6 +76,9 @@ export default function App() {
     hasLoadedAdminInvites,
     workspaceMembers,
     hasLoadedWorkspaceMembers,
+    directReports,
+    hasLoadedDirectReports,
+    setDirectReports,
     tasks,
     hasLoadedTasks,
     setTasks,
@@ -448,6 +452,31 @@ export default function App() {
   }, [activeView, hasLoadedNotifications, refreshAppData, session]);
 
   useEffect(() => {
+    if (!session || activeView !== "one-on-ones") {
+      return;
+    }
+
+    const needsReports = !hasLoadedDirectReports;
+    const needsMembers = !hasLoadedWorkspaceMembers;
+
+    if (!needsReports && !needsMembers) {
+      return;
+    }
+
+    void refreshAppData(session, {
+      directReports: needsReports,
+      workspaceMembers: needsMembers,
+      tasks: false,
+      agenda: false,
+      notifications: false,
+      capturedItems: false,
+      adminUsers: false,
+      adminInvites: false,
+      adminWorkspaces: false,
+    });
+  }, [activeView, hasLoadedDirectReports, hasLoadedWorkspaceMembers, refreshAppData, session]);
+
+  useEffect(() => {
     if (
       !session ||
       activeView !== "admin" ||
@@ -777,6 +806,17 @@ export default function App() {
               onMarkAllRead={() => void handleMarkAllNotificationsRead()}
               onMarkRead={(id) => void handleMarkNotificationRead(id)}
               onOpenNotification={(notification) => void handleOpenNotification(notification)}
+            />
+          )}
+
+          {activeView === "one-on-ones" && (
+            <OneOnOnesView
+              currentUserId={session.user.id}
+              directReports={directReports}
+              setDirectReports={setDirectReports}
+              workspaceMembers={workspaceMembers}
+              todayBadge={todayBadge}
+              onError={setError}
             />
           )}
 

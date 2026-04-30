@@ -43,6 +43,15 @@ export const API_ROUTES = {
     status: (id: string) => `/api/tasks/${id}/status`,
     archive: (id: string) => `/api/tasks/${id}/archive`,
   },
+  oneOnOnes: {
+    list: "/api/one-on-ones",
+    reports: "/api/one-on-ones/reports",
+    report: (id: string) => `/api/one-on-ones/reports/${id}`,
+    agendaItems: (reportId: string) => `/api/one-on-ones/reports/${reportId}/agenda-items`,
+    agendaItem: (id: string) => `/api/one-on-ones/agenda-items/${id}`,
+    meetings: (reportId: string) => `/api/one-on-ones/reports/${reportId}/meetings`,
+    meeting: (id: string) => `/api/one-on-ones/meetings/${id}`,
+  },
   capturedItems: {
     list: "/api/captured-items",
     create: "/api/captured-items",

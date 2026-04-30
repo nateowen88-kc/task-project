@@ -466,6 +466,13 @@ a {
   gap: 1rem;
 }
 
+.one-on-one-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
 .admin-users {
   display: grid;
   gap: 0.85rem;
@@ -524,8 +531,19 @@ a {
   gap: 0.65rem;
 }
 
+.admin-user-actions-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 .admin-user-card h3 {
   margin: 0;
+}
+
+.admin-user-card.is-selected-report {
+  border-color: rgba(76, 173, 251, 0.32);
+  box-shadow: 0 12px 28px rgba(76, 173, 251, 0.1);
 }
 
 .admin-user-card p,
@@ -1369,6 +1387,7 @@ a {
   .today-grid,
   .board-grid,
   .admin-grid,
+  .one-on-one-grid,
   .workflow-assets-grid,
   .task-detail-columns {
     grid-template-columns: 1fr;

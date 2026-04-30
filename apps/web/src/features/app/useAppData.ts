@@ -5,6 +5,7 @@ import {
   AgendaResponse,
   AuthSession,
   CapturedItem,
+  DirectReport,
   Notification,
   Task,
   WorkspaceInvite,
@@ -12,6 +13,7 @@ import {
   fetchAdminUsers,
   fetchAdminWorkspaces,
   fetchCapturedItems,
+  fetchDirectReports,
   fetchNotifications,
   fetchSession,
   fetchTasks,
@@ -53,6 +55,7 @@ type RefreshTargets = {
   adminUsers?: boolean;
   adminInvites?: boolean;
   adminWorkspaces?: boolean;
+  directReports?: boolean;
 };
 
 const fullRefreshTargets: Required<RefreshTargets> = {
@@ -64,6 +67,7 @@ const fullRefreshTargets: Required<RefreshTargets> = {
   adminUsers: true,
   adminInvites: true,
   adminWorkspaces: true,
+  directReports: true,
 };
 
 function normalizeRefreshTargets(targets?: RefreshTargets) {
@@ -91,6 +95,8 @@ export function useAppData({ onError }: UseAppDataOptions) {
   const [hasLoadedCapturedItems, setHasLoadedCapturedItems] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
+  const [directReports, setDirectReports] = useState<DirectReport[]>([]);
+  const [hasLoadedDirectReports, setHasLoadedDirectReports] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isWorkspaceSwitching, setIsWorkspaceSwitching] = useState(false);
   const sessionRef = useRef<AuthSession | null>(null);
@@ -116,6 +122,8 @@ export function useAppData({ onError }: UseAppDataOptions) {
     setHasLoadedAdminWorkspaces(false);
     setAdminInvites([]);
     setHasLoadedAdminInvites(false);
+    setDirectReports([]);
+    setHasLoadedDirectReports(false);
   }, []);
 
   const refreshAppData = useCallback(
@@ -134,6 +142,7 @@ export function useAppData({ onError }: UseAppDataOptions) {
         ...(targets.capturedItems ? [fetchCapturedItems()] : []),
         ...(targets.adminInvites && effectiveSession.permissions.canManageUsers ? [fetchWorkspaceInvites()] : []),
         ...(targets.adminWorkspaces && effectiveSession.permissions.canCreateWorkspaces ? [fetchAdminWorkspaces()] : []),
+        ...(targets.directReports ? [fetchDirectReports()] : []),
       ];
       const resultKeys: Array<keyof RefreshTargets> = [];
 
@@ -159,6 +168,10 @@ export function useAppData({ onError }: UseAppDataOptions) {
 
       if (targets.adminWorkspaces && effectiveSession.permissions.canCreateWorkspaces) {
         resultKeys.push("adminWorkspaces");
+      }
+
+      if (targets.directReports) {
+        resultKeys.push("directReports");
       }
 
       if (targets.agenda && effectiveSession.workspace.id !== ALL_WORKSPACES_ID) {
@@ -209,6 +222,10 @@ export function useAppData({ onError }: UseAppDataOptions) {
           case "adminWorkspaces":
             setAdminWorkspaces((result as AdminWorkspace[]) ?? []);
             setHasLoadedAdminWorkspaces(true);
+            break;
+          case "directReports":
+            setDirectReports((result as DirectReport[]) ?? []);
+            setHasLoadedDirectReports(true);
             break;
         }
       });
@@ -339,6 +356,9 @@ export function useAppData({ onError }: UseAppDataOptions) {
     notifications,
     hasLoadedNotifications,
     setNotifications,
+    directReports,
+    hasLoadedDirectReports,
+    setDirectReports,
     isLoading,
     isWorkspaceSwitching,
     refreshAppData,

@@ -11,6 +11,7 @@ import { createAdminRouter } from "./routes/admin.js";
 import { createTasksRouter } from "./routes/tasks.js";
 import { createCapturedItemsRouter } from "./routes/captured-items.js";
 import { createIntegrationsRouter } from "./routes/integrations.js";
+import { createOneOnOnesRouter } from "./routes/one-on-ones.js";
 
 const configuredOrigins = (process.env.CORS_ORIGINS ?? "")
   .split(",")
@@ -102,6 +103,7 @@ export function createApp() {
   app.use("/api/workspace-members", createWorkspaceMembersRouter());
   app.use("/", createTodayRouter());
   app.use("/", createTasksRouter());
+  app.use("/", createOneOnOnesRouter());
   app.use("/", createCapturedItemsRouter());
   app.use("/", createIntegrationsRouter());
   app.use("/api/admin", requireWorkspaceAdmin, createAdminRouter());

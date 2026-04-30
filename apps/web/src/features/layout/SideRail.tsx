@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 
-type AppView = "workflow" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
+type AppView = "workflow" | "one-on-ones" | "agenda" | "inbox" | "notifications" | "admin" | "focus";
 
 export type SideRailProps = {
   activeView: AppView;
