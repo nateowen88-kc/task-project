@@ -52,11 +52,11 @@ export function buildAvailableViews({
 }) {
   return [
     "workflow",
-    "team",
-    "one-on-ones",
     "agenda",
+    "one-on-ones",
     "inbox",
     "notifications",
+    "team",
     ...(focusedItem ? ["focus"] : []),
     ...(canManageUsers ? ["admin"] : []),
   ] as AppView[];

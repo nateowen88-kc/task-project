@@ -1,7 +1,7 @@
 import type { Task, TaskPlaybook, TaskStatus, TaskTemplate } from "../../api";
 import { SectionHeader } from "../../components/layout/SectionHeader";
 
-export type WorkflowFilter = "all" | "assigned" | "created" | "unassigned";
+export type WorkflowFilter = "all" | "assigned" | "created" | "unassigned" | "one-on-ones";
 
 type WorkflowViewProps = {
   tasks: Task[];
@@ -78,6 +78,7 @@ export function WorkflowView({
                   ["assigned", "Assigned to me"],
                   ["created", "Created by me"],
                   ["unassigned", "Unassigned"],
+                  ["one-on-ones", "1:1 follow-ups"],
                 ] as Array<[WorkflowFilter, string]>).map(([value, label]) => (
                   <button
                     key={value}

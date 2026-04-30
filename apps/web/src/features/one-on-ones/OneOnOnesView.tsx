@@ -26,11 +26,13 @@ export function OneOnOnesView({
   setDirectReports,
   todayBadge,
   onError,
+  onOpenTask,
 }: {
   directReports: DirectReport[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
   todayBadge: { month: string; day: number; weekday: string };
   onError: (message: string | null) => void;
+  onOpenTask: (taskId: string) => void;
 }) {
   const {
     selectedReportId,
@@ -207,14 +209,21 @@ export function OneOnOnesView({
               <div className="detail-card">
                 <strong>Action items from last 1:1</strong>
                 {selectedReport.openActionItems.length ? (
-                  <ul className="detail-list-inline">
+                  <div className="task-detail-list admin-compact-list" style={{ marginTop: "12px" }}>
                     {selectedReport.openActionItems.map((item) => (
-                      <li key={item.id}>
-                        {item.details || item.title}
-                        <span style={{ marginLeft: "8px", opacity: 0.7 }}>due {formatReceivedLabel(item.dueDate)}</span>
-                      </li>
+                      <article key={item.id} className="detail-card">
+                        <div className="detail-card-top">
+                          <strong>{item.details || item.title}</strong>
+                          <span>due {formatReceivedLabel(item.dueDate)}</span>
+                        </div>
+                        <div className="admin-user-actions">
+                          <button className="ghost-button compact" type="button" onClick={() => onOpenTask(item.id)}>
+                            Open task
+                          </button>
+                        </div>
+                      </article>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p>No unresolved 1:1 action items.</p>
                 )}

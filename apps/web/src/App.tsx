@@ -322,6 +322,19 @@ export default function App() {
     },
     [tasks, startEdit],
   );
+  const handleOpenOneOnOneTask = useCallback(
+    (taskId: string) => {
+      const sourceTask = tasks.find((task) => task.id === taskId);
+
+      if (sourceTask) {
+        void startEdit(sourceTask);
+        return;
+      }
+
+      setError("Could not find that task in the current workspace.");
+    },
+    [tasks, startEdit],
+  );
 
   const workflowTasks = tasks.filter((task) => {
     switch (workflowFilter) {
@@ -331,6 +344,8 @@ export default function App() {
         return task.createdById === session?.user.id;
       case "unassigned":
         return task.assigneeId === null;
+      case "one-on-ones":
+        return task.isPrivate;
       default:
         return true;
     }
@@ -829,6 +844,7 @@ export default function App() {
               setDirectReports={setDirectReports}
               todayBadge={todayBadge}
               onError={setError}
+              onOpenTask={handleOpenOneOnOneTask}
             />
           )}
 

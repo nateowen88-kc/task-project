@@ -21,7 +21,7 @@ export function NotificationsView({
   onOpenNotification,
 }: NotificationsViewProps) {
   return (
-    <section className="panel notifications-panel">
+    <section className="panel today-panel notifications-panel">
       <SectionHeader
         wide
         eyebrow="Notifications"
