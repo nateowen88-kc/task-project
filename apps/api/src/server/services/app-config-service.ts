@@ -18,6 +18,14 @@ function nullableString(value: string | null | undefined) {
   return normalized.length > 0 ? normalized : null;
 }
 
+function normalizeStringList(value: string[] | null | undefined) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((item) => item.trim()).filter((item) => item.length > 0);
+}
+
 function fromRecord(record: AppConfigRecord): AdminAppConfig {
   return {
     appBaseUrl: normalizeString(record?.appBaseUrl),
@@ -26,6 +34,8 @@ function fromRecord(record: AppConfigRecord): AdminAppConfig {
     outlookTenantId: normalizeString(record?.outlookTenantId),
     slackSigningSecret: normalizeString(record?.slackSigningSecret),
     slackDisableSignatureVerification: Boolean(record?.slackDisableSignatureVerification),
+    directReportNameOptions: normalizeStringList(record?.directReportNameOptions),
+    directReportRoleOptions: normalizeStringList(record?.directReportRoleOptions),
   };
 }
 
@@ -37,6 +47,8 @@ function defaultFromEnv(): AdminAppConfig {
     outlookTenantId: normalizeString(process.env.OUTLOOK_TENANT_ID),
     slackSigningSecret: normalizeString(process.env.SLACK_SIGNING_SECRET),
     slackDisableSignatureVerification: process.env.SLACK_DISABLE_SIGNATURE_VERIFICATION === "true",
+    directReportNameOptions: [],
+    directReportRoleOptions: [],
   };
 }
 
@@ -56,7 +68,11 @@ export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPaylo
     typeof input.outlookClientSecret === "string" &&
     typeof input.outlookTenantId === "string" &&
     typeof input.slackSigningSecret === "string" &&
-    typeof input.slackDisableSignatureVerification === "boolean"
+    typeof input.slackDisableSignatureVerification === "boolean" &&
+    Array.isArray(input.directReportNameOptions) &&
+    input.directReportNameOptions.every((item) => typeof item === "string") &&
+    Array.isArray(input.directReportRoleOptions) &&
+    input.directReportRoleOptions.every((item) => typeof item === "string")
   );
 }
 
@@ -74,6 +90,8 @@ export async function updateAdminAppConfig(
       outlookTenantId: nullableString(input.outlookTenantId),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
+      directReportNameOptions: normalizeStringList(input.directReportNameOptions),
+      directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
     },
     update: {
       appBaseUrl: nullableString(input.appBaseUrl),
@@ -82,6 +100,8 @@ export async function updateAdminAppConfig(
       outlookTenantId: nullableString(input.outlookTenantId),
       slackSigningSecret: nullableString(input.slackSigningSecret),
       slackDisableSignatureVerification: input.slackDisableSignatureVerification,
+      directReportNameOptions: normalizeStringList(input.directReportNameOptions),
+      directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
     },
   });
 

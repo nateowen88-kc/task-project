@@ -501,7 +501,11 @@ export default function App() {
   ]);
 
   useEffect(() => {
-    if (!session || activeView !== "admin" || !canCreateWorkspaces) {
+    if (
+      !session ||
+      !canCreateWorkspaces ||
+      (activeView !== "admin" && activeView !== "one-on-ones")
+    ) {
       return;
     }
 
@@ -811,6 +815,8 @@ export default function App() {
             <OneOnOnesView
               directReports={directReports}
               setDirectReports={setDirectReports}
+              directReportNameOptions={appConfigForm.directReportNameOptions}
+              directReportRoleOptions={appConfigForm.directReportRoleOptions}
               todayBadge={todayBadge}
               onError={setError}
             />

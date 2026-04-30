@@ -28,14 +28,27 @@ function toLocalDateTime(value: string | null) {
   return new Date(value).toISOString().slice(0, 16);
 }
 
+function includeCurrentOption(options: Array<{ value: string; label: string }>, currentValue: string) {
+  const normalized = currentValue.trim();
+  if (!normalized || options.some((option) => option.value === normalized)) {
+    return options;
+  }
+
+  return [{ value: normalized, label: normalized }, ...options];
+}
+
 export function OneOnOnesView({
   directReports,
   setDirectReports,
+  directReportNameOptions,
+  directReportRoleOptions,
   todayBadge,
   onError,
 }: {
   directReports: DirectReport[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
+  directReportNameOptions: string[];
+  directReportRoleOptions: string[];
   todayBadge: { month: string; day: number; weekday: string };
   onError: (message: string | null) => void;
 }) {
@@ -87,6 +100,23 @@ export function OneOnOnesView({
   const [meetingDrafts, setMeetingDrafts] = useState<
     Record<string, { scheduledFor: string; status: OneOnOneMeetingStatus; sharedNotes: string; privateNotes: string }>
   >({});
+  const isDirectReportConfigReady = directReportNameOptions.length > 0 && directReportRoleOptions.length > 0;
+  const directReportNameSelectOptions = useMemo(
+    () => directReportNameOptions.map((value) => ({ value, label: value })),
+    [directReportNameOptions],
+  );
+  const directReportRoleSelectOptions = useMemo(
+    () => directReportRoleOptions.map((value) => ({ value, label: value })),
+    [directReportRoleOptions],
+  );
+  const reportDraftNameOptions = useMemo(
+    () => includeCurrentOption(directReportNameSelectOptions, reportDraft.reportName),
+    [directReportNameSelectOptions, reportDraft.reportName],
+  );
+  const reportDraftRoleOptions = useMemo(
+    () => includeCurrentOption(directReportRoleSelectOptions, reportDraft.role),
+    [directReportRoleSelectOptions, reportDraft.role],
+  );
 
   useEffect(() => {
     if (!selectedReport) {
@@ -129,6 +159,22 @@ export function OneOnOnesView({
     setMeetingDrafts(nextDrafts);
   }, [selectedReport]);
 
+  useEffect(() => {
+    if (!directReportNameSelectOptions.length || createForm.reportName) {
+      return;
+    }
+
+    setCreateForm((current) => ({ ...current, reportName: directReportNameSelectOptions[0].value }));
+  }, [createForm.reportName, directReportNameSelectOptions]);
+
+  useEffect(() => {
+    if (!directReportRoleSelectOptions.length || createForm.role) {
+      return;
+    }
+
+    setCreateForm((current) => ({ ...current, role: directReportRoleSelectOptions[0].value }));
+  }, [createForm.role, directReportRoleSelectOptions]);
+
   return (
     <section className="panel admin-panel">
       <SectionHeader
@@ -157,10 +203,14 @@ export function OneOnOnesView({
           >
             <label>
               Direct report name
-              <input
+              <AppSelect
+                ariaLabel="Direct report name"
+                className="app-select"
+                menuClassName="app-select-menu"
                 value={createForm.reportName}
-                onChange={(event) => setCreateForm((current) => ({ ...current, reportName: event.target.value }))}
-                required
+                options={directReportNameSelectOptions}
+                onChange={(value) => setCreateForm((current) => ({ ...current, reportName: value }))}
+                disabled={!isDirectReportConfigReady}
               />
             </label>
 
@@ -176,11 +226,14 @@ export function OneOnOnesView({
 
             <label>
               Role
-              <input
+              <AppSelect
+                ariaLabel="Direct report role"
+                className="app-select"
+                menuClassName="app-select-menu"
                 value={createForm.role}
-                onChange={(event) => setCreateForm((current) => ({ ...current, role: event.target.value }))}
-                placeholder="Engineer, PM, Designer..."
-                required
+                options={directReportRoleSelectOptions}
+                onChange={(value) => setCreateForm((current) => ({ ...current, role: value }))}
+                disabled={!isDirectReportConfigReady}
               />
             </label>
 
@@ -218,11 +271,17 @@ export function OneOnOnesView({
             </label>
 
             <div className="admin-form-actions">
-              <button className="primary-button" type="submit" disabled={isCreatingReport}>
+              <button className="primary-button" type="submit" disabled={isCreatingReport || !isDirectReportConfigReady}>
                 {isCreatingReport ? "Creating..." : "Add direct report"}
               </button>
             </div>
           </form>
+
+          {!isDirectReportConfigReady ? (
+            <div className="detail-card">
+              <p>Configure direct report names and roles in Admin before creating 1:1 relationships.</p>
+            </div>
+          ) : null}
         </section>
 
         <section className="admin-form-panel">
@@ -291,10 +350,14 @@ export function OneOnOnesView({
             >
               <label>
                 Direct report name
-                <input
+                <AppSelect
+                  ariaLabel="Selected direct report name"
+                  className="app-select"
+                  menuClassName="app-select-menu"
                   value={reportDraft.reportName}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, reportName: event.target.value }))}
-                  required
+                  options={reportDraftNameOptions}
+                  onChange={(value) => setReportDraft((current) => ({ ...current, reportName: value }))}
+                  disabled={!isDirectReportConfigReady}
                 />
               </label>
               <label>
@@ -308,10 +371,14 @@ export function OneOnOnesView({
               </label>
               <label>
                 Role
-                <input
+                <AppSelect
+                  ariaLabel="Selected direct report role"
+                  className="app-select"
+                  menuClassName="app-select-menu"
                   value={reportDraft.role}
-                  onChange={(event) => setReportDraft((current) => ({ ...current, role: event.target.value }))}
-                  required
+                  options={reportDraftRoleOptions}
+                  onChange={(value) => setReportDraft((current) => ({ ...current, role: value }))}
+                  disabled={!isDirectReportConfigReady}
                 />
               </label>
               <label>
@@ -345,7 +412,7 @@ export function OneOnOnesView({
                 <button className="ghost-button danger-button" type="button" disabled={deletingReportId === selectedReport.id} onClick={() => void handleDeleteReport(selectedReport.id)}>
                   {deletingReportId === selectedReport.id ? "Deleting..." : "Delete"}
                 </button>
-                <button className="primary-button" type="submit" disabled={savingReportId === selectedReport.id}>
+                <button className="primary-button" type="submit" disabled={savingReportId === selectedReport.id || !isDirectReportConfigReady}>
                   {savingReportId === selectedReport.id ? "Saving..." : "Save"}
                 </button>
               </div>

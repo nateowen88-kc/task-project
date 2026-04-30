@@ -82,6 +82,8 @@ function createEmptyAppConfigForm(): AppConfigFormState {
     outlookTenantId: "",
     slackSigningSecret: "",
     slackDisableSignatureVerification: false,
+    directReportNameOptions: [],
+    directReportRoleOptions: [],
   };
 }
 

@@ -175,6 +175,9 @@ export function AdminView({
   onWorkspaceStatusChange,
   onRevokeInvite,
 }: AdminViewProps) {
+  const directReportNameOptionsText = appConfigForm.directReportNameOptions.join("\n");
+  const directReportRoleOptionsText = appConfigForm.directReportRoleOptions.join("\n");
+
   const [workspaceDrafts, setWorkspaceDrafts] = useState<Record<string, WorkspaceSettingsFormState>>({});
 
   useEffect(() => {
@@ -850,6 +853,42 @@ export function AdminView({
                 />
               </label>
 
+              <label>
+                Direct report names
+                <textarea
+                  rows={6}
+                  value={directReportNameOptionsText}
+                  onChange={(event) =>
+                    onAppConfigFormChange((current) => ({
+                      ...current,
+                      directReportNameOptions: event.target.value
+                        .split("\n")
+                        .map((item) => item.trim())
+                        .filter((item) => item.length > 0),
+                    }))
+                  }
+                  placeholder="One name per line"
+                />
+              </label>
+
+              <label>
+                Direct report roles
+                <textarea
+                  rows={6}
+                  value={directReportRoleOptionsText}
+                  onChange={(event) =>
+                    onAppConfigFormChange((current) => ({
+                      ...current,
+                      directReportRoleOptions: event.target.value
+                        .split("\n")
+                        .map((item) => item.trim())
+                        .filter((item) => item.length > 0),
+                    }))
+                  }
+                  placeholder="One role per line"
+                />
+              </label>
+
               <label style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <input
                   type="checkbox"
@@ -868,6 +907,9 @@ export function AdminView({
                 <p>
                   Database URL, CORS, cookie domain, and platform runtime settings remain environment configuration.
                   This page manages app-level integrations and security settings.
+                </p>
+                <p>
+                  Direct report names and roles are managed here and used as the dropdown values in the 1:1 module.
                 </p>
               </div>
 

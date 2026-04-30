@@ -71,6 +71,11 @@ export function useOneOnOneActions({
       return;
     }
 
+    if (!createForm.role.trim()) {
+      onError("Direct report role is required.");
+      return;
+    }
+
     try {
       setIsCreatingReport(true);
       onError(null);
@@ -100,6 +105,16 @@ export function useOneOnOneActions({
   }
 
   async function handleSaveReport(reportId: string, payload: DirectReportCreateForm) {
+    if (!payload.reportName.trim()) {
+      onError("Direct report name is required.");
+      return;
+    }
+
+    if (!payload.role.trim()) {
+      onError("Direct report role is required.");
+      return;
+    }
+
     try {
       setSavingReportId(reportId);
       onError(null);

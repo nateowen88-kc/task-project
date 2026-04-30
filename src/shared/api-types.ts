@@ -396,6 +396,8 @@ export type AdminAppConfig = {
   outlookTenantId: string;
   slackSigningSecret: string;
   slackDisableSignatureVerification: boolean;
+  directReportNameOptions: string[];
+  directReportRoleOptions: string[];
 };
 
 export type AdminWorkspace = {

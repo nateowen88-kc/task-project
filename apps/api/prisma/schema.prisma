@@ -127,6 +127,8 @@ model AppConfig {
   slackSigningSecret                 String?
   slackDisableSignatureVerification  Boolean  @default(false)
   emailInboundToken                  String?
+  directReportNameOptions            String[] @default([])
+  directReportRoleOptions            String[] @default([])
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @default(now()) @updatedAt
 }
