@@ -8,7 +8,7 @@ import {
   workspaceScopedIdWhere,
   workspaceWhere,
 } from "../lib/auth.js";
-import { addDays, formatDate, toDateOnly, toDateTime } from "../lib/dates.js";
+import { toDateOnly, toDateTime } from "../lib/dates.js";
 import { toApiCapturedItem, toApiTask } from "../lib/serializers.js";
 import { notifyTaskAssignment } from "../services/notification-service.js";
 import {
@@ -111,34 +111,6 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
     });
 
     sendJson(response, 201, toApiCapturedItem(item));
-    return;
-  }
-
-  if (method === "POST" && pathname === API_ROUTES.capturedItems.demoSlack) {
-    const timestamp = new Date();
-    const item = await prisma.capturedItem.create({
-      data: {
-        workspaceId: auth.workspace.id,
-        sourceType: CaptureSourceType.SLACK,
-        title: "Follow up on launch checklist update",
-        body: "Can you turn the launch checklist thread into next-week tasks and flag blockers before Thursday?",
-        sourceLabel: "#product-ops",
-        sourceUrl: "https://slack.com/app_redirect?channel=product-ops",
-        sender: "Avery Morgan",
-        receivedAt: timestamp,
-        suggestedDueDate: toDateOnly(formatDate(addDays(timestamp, 3))),
-      },
-      include: {
-        workspace: true,
-      },
-    });
-
-    const hydratedItem = await prisma.capturedItem.findUniqueOrThrow({
-      where: { id: item.id },
-      include: { workspace: true },
-    });
-
-    sendJson(response, 201, toApiCapturedItem(hydratedItem));
     return;
   }
 

@@ -271,7 +271,6 @@ export default function App() {
 
   const {
     handleDiscardCapture,
-    handleCreateDemoSlackCapture,
   } = useInboxActions({
     refreshAppData,
     onError: setError,
@@ -690,7 +689,6 @@ export default function App() {
               isAllWorkspacesMode={isAllWorkspacesMode}
               todayBadge={todayBadge}
               getItemWorkspaceLabel={getItemWorkspaceLabel}
-              onCreateDemoSlackCapture={() => void handleCreateDemoSlackCapture()}
               onStartCaptureReview={startCaptureReview}
               onDiscardCapture={(itemId) => void handleDiscardCapture(itemId)}
             />

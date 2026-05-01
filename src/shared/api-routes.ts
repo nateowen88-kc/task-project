@@ -58,7 +58,6 @@ export const API_ROUTES = {
     create: "/api/captured-items",
     accept: (id: string) => `/api/captured-items/${id}/accept`,
     discard: (id: string) => `/api/captured-items/${id}/discard`,
-    demoSlack: "/api/captured-items/demo/slack",
   },
   notifications: {
     list: "/api/notifications",
@@ -69,7 +68,6 @@ export const API_ROUTES = {
     list: "/api/workspace-members",
   },
   integrations: {
-    slackInteractions: "/api/integrations/slack/interactions",
-    slackCommands: "/api/integrations/slack/commands",
+    emailInbound: "/api/integrations/email/inbound",
   },
 } as const;

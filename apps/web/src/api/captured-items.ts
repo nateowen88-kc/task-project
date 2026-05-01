@@ -20,15 +20,8 @@ function discardCapturedItem(id: string) {
   });
 }
 
-function createDemoSlackCapture() {
-  return request<CapturedItem>(API_ROUTES.capturedItems.demoSlack, {
-    method: "POST",
-  });
-}
-
 export {
   acceptCapturedItem,
-  createDemoSlackCapture,
   discardCapturedItem,
   fetchCapturedItems,
 };

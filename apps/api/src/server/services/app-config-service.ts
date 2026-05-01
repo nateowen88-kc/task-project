@@ -29,8 +29,6 @@ function normalizeStringList(value: string[] | null | undefined) {
 function fromRecord(record: AppConfigRecord): AdminAppConfig {
   return {
     appBaseUrl: normalizeString(record?.appBaseUrl),
-    slackSigningSecret: normalizeString(record?.slackSigningSecret),
-    slackDisableSignatureVerification: Boolean(record?.slackDisableSignatureVerification),
     directReportNameOptions: normalizeStringList(record?.directReportNameOptions),
     directReportRoleOptions: normalizeStringList(record?.directReportRoleOptions),
   };
@@ -39,8 +37,6 @@ function fromRecord(record: AppConfigRecord): AdminAppConfig {
 function defaultFromEnv(): AdminAppConfig {
   return {
     appBaseUrl: normalizeString(process.env.APP_BASE_URL),
-    slackSigningSecret: normalizeString(process.env.SLACK_SIGNING_SECRET),
-    slackDisableSignatureVerification: process.env.SLACK_DISABLE_SIGNATURE_VERIFICATION === "true",
     directReportNameOptions: [],
     directReportRoleOptions: [],
   };
@@ -58,8 +54,6 @@ export async function getAdminAppConfig(tx: AppConfigClient = prisma): Promise<A
 export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPayload>): input is UpdateAppConfigPayload {
   return (
     typeof input.appBaseUrl === "string" &&
-    typeof input.slackSigningSecret === "string" &&
-    typeof input.slackDisableSignatureVerification === "boolean" &&
     Array.isArray(input.directReportNameOptions) &&
     input.directReportNameOptions.every((item) => typeof item === "string") &&
     Array.isArray(input.directReportRoleOptions) &&
@@ -76,15 +70,11 @@ export async function updateAdminAppConfig(
     create: {
       id: APP_CONFIG_ID,
       appBaseUrl: nullableString(input.appBaseUrl),
-      slackSigningSecret: nullableString(input.slackSigningSecret),
-      slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       directReportNameOptions: normalizeStringList(input.directReportNameOptions),
       directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
     },
     update: {
       appBaseUrl: nullableString(input.appBaseUrl),
-      slackSigningSecret: nullableString(input.slackSigningSecret),
-      slackDisableSignatureVerification: input.slackDisableSignatureVerification,
       directReportNameOptions: normalizeStringList(input.directReportNameOptions),
       directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
     },

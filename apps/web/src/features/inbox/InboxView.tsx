@@ -8,7 +8,6 @@ type InboxViewProps = {
   isAllWorkspacesMode: boolean;
   todayBadge: { month: string; day: number; weekday: string };
   getItemWorkspaceLabel: (item: CapturedItem) => string | null;
-  onCreateDemoSlackCapture: () => void;
   onStartCaptureReview: (item: CapturedItem) => void;
   onDiscardCapture: (id: string) => void;
 };
@@ -18,7 +17,6 @@ export function InboxView({
   isAllWorkspacesMode,
   todayBadge,
   getItemWorkspaceLabel,
-  onCreateDemoSlackCapture,
   onStartCaptureReview,
   onDiscardCapture,
 }: InboxViewProps) {
@@ -29,16 +27,11 @@ export function InboxView({
       <SectionHeader
         wide
         eyebrow="Task Inbox"
-        title="Task suggestions captured from Slack messages"
+        title="Task suggestions captured from inbound email"
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
         actions={
           <>
-            <span></span>
-            <div className="capture-header-actions">
-              <button className="ghost-button" type="button" onClick={onCreateDemoSlackCapture}>
-                Add sample Slack item
-              </button>
-            </div>
+            <span>Forward work into <strong>task@timesmithhq.com</strong> to review it here.</span>
           </>
         }
       />
@@ -48,7 +41,7 @@ export function InboxView({
           newItems.map((item) => (
             <article key={item.id} className={`capture-card ${item.sourceType}`}>
               <div className="capture-card-top">
-                <span className={`capture-badge ${item.sourceType}`}>{item.sourceType === "slack" ? "Slack" : "Email"}</span>
+                <span className={`capture-badge ${item.sourceType}`}>Email</span>
                 <span className="capture-meta">{formatReceivedLabel(item.receivedAt)}</span>
               </div>
 
@@ -87,7 +80,7 @@ export function InboxView({
         ) : (
           <div className="empty-state capture-empty">
             <p>No captured items waiting for review.</p>
-            <span>Add a sample Slack item now to test the inbox workflow.</span>
+            <span>Send an email to <strong>task@timesmithhq.com</strong> and it will land here.</span>
           </div>
         )}
       </div>

@@ -77,8 +77,6 @@ function createEmptyWorkspaceForm(): WorkspaceFormState {
 function createEmptyAppConfigForm(): AppConfigFormState {
   return {
     appBaseUrl: "",
-    slackSigningSecret: "",
-    slackDisableSignatureVerification: false,
     directReportNameOptions: [],
     directReportRoleOptions: [],
   };

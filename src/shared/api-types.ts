@@ -390,8 +390,6 @@ export type WorkspaceInviteLookup = {
 
 export type AdminAppConfig = {
   appBaseUrl: string;
-  slackSigningSecret: string;
-  slackDisableSignatureVerification: boolean;
   directReportNameOptions: string[];
   directReportRoleOptions: string[];
 };
