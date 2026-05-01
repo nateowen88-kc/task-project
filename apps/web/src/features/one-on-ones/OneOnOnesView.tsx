@@ -115,14 +115,14 @@ export function OneOnOnesView({
         eyebrow="Manager Workspace"
         title="1:1s"
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
-        actions={<span>Start a meeting, capture notes, and turn follow-up items into private tasks.</span>}
+        actions={<span>Start a 1:1, capture notes, and turn follow-up items into private tasks.</span>}
       />
 
       <div className="one-on-one-grid">
         <section className="admin-form-panel">
           <div className="section-heading">
             <SectionHeaderLead>
-              <p className="eyebrow">Start a meeting</p>
+              <p className="eyebrow">Start a 1:1</p>
               <h2>Select a team member</h2>
             </SectionHeaderLead>
           </div>
@@ -170,7 +170,7 @@ export function OneOnOnesView({
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
-                <p className="eyebrow">New meeting</p>
+                <p className="eyebrow">New 1:1</p>
                 <h2>{selectedReport.reportName}</h2>
               </SectionHeaderLead>
             </div>
@@ -230,7 +230,7 @@ export function OneOnOnesView({
               </div>
 
               <label>
-                Details for this meeting
+                Details for this 1:1
                 <textarea
                   rows={5}
                   value={newMeetingDetails}
@@ -262,7 +262,7 @@ export function OneOnOnesView({
                   type="submit"
                   disabled={completingMeetingForReportId === selectedReport.id}
                 >
-                  {completingMeetingForReportId === selectedReport.id ? "Saving..." : "Create 1:1"}
+                  {completingMeetingForReportId === selectedReport.id ? "Saving..." : "Save 1:1"}
                 </button>
               </div>
             </form>
@@ -274,7 +274,7 @@ export function OneOnOnesView({
         <section className="admin-form-panel admin-form-panel-wide">
           <div className="section-heading">
             <SectionHeaderLead>
-              <p className="eyebrow">Meetings</p>
+              <p className="eyebrow">1:1s</p>
               <h2>1:1 history</h2>
             </SectionHeaderLead>
           </div>
@@ -328,7 +328,7 @@ export function OneOnOnesView({
                         />
                       </label>
                       <label>
-                        Meeting details
+                        1:1 details
                         <textarea
                           rows={4}
                           value={draft.sharedNotes}
@@ -412,7 +412,7 @@ export function OneOnOnesView({
                 );
               })
             ) : (
-              <div className="detail-empty">No meetings yet.</div>
+              <div className="detail-empty">No 1:1s have been scheduled yet.</div>
             )}
           </div>
         </section>
