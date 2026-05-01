@@ -68,7 +68,7 @@ export function AgendaView({
         wide
         eyebrow="Today In TimeSmith"
         title="Generated daily agenda"
-        leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} size="sm" showWeekday={false} />}
+        leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
         actions={
           <>
             <span>
