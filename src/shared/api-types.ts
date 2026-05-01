@@ -93,24 +93,6 @@ export type AgendaResponse = {
   items: TodayItem[];
 };
 
-export type OutlookCalendarStatus = {
-  provider: "outlook";
-  isConfigured: boolean;
-  isConnected: boolean;
-  accountEmail: string | null;
-  expiresAt: string | null;
-};
-
-export type OutlookCalendarEvent = {
-  id: string;
-  subject: string;
-  startsAt: string;
-  endsAt: string;
-  isAllDay: boolean;
-  showAs: string;
-  webLink: string | null;
-};
-
 export type CapturedItem = {
   id: string;
   sourceType: CaptureSourceType;
@@ -408,9 +390,6 @@ export type WorkspaceInviteLookup = {
 
 export type AdminAppConfig = {
   appBaseUrl: string;
-  outlookClientId: string;
-  outlookClientSecret: string;
-  outlookTenantId: string;
   slackSigningSecret: string;
   slackDisableSignatureVerification: boolean;
   directReportNameOptions: string[];

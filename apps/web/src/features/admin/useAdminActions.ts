@@ -77,9 +77,6 @@ function createEmptyWorkspaceForm(): WorkspaceFormState {
 function createEmptyAppConfigForm(): AppConfigFormState {
   return {
     appBaseUrl: "",
-    outlookClientId: "",
-    outlookClientSecret: "",
-    outlookTenantId: "",
     slackSigningSecret: "",
     slackDisableSignatureVerification: false,
     directReportNameOptions: [],

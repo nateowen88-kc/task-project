@@ -1,4 +1,4 @@
-import type { OutlookCalendarEvent, OutlookCalendarStatus, Task, TaskStatus, TodayItem } from "../../api";
+import type { Task, TaskStatus, TodayItem } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { AgendaItemCard } from "./AgendaItemCard";
@@ -17,17 +17,11 @@ type AgendaViewProps = {
   agendaSections: AgendaSection[];
   promotedCount: number;
   isAgendaRefreshing: boolean;
-  outlookStatus: OutlookCalendarStatus | null;
-  outlookEvents: OutlookCalendarEvent[];
-  isOutlookLoading: boolean;
   focusedItemKey: string | null;
   getItemWorkspaceLabel: (item: TodayItem | Task) => string | null;
   formatDueLabel: (value: string) => string;
   formatReminderLabel: (value: string | null) => string;
   getTodayReason: (item: TodayItem) => string;
-  formatCalendarEventRange: (event: OutlookCalendarEvent) => string;
-  onConnectOutlookCalendar: () => void;
-  onDisconnectOutlookCalendar: () => void;
   onGenerateAgenda: () => void;
   onFocus: (item: TodayItem) => void;
   onOpenTask: (item: TodayItem) => void;
@@ -44,17 +38,11 @@ export function AgendaView({
   agendaSections,
   promotedCount,
   isAgendaRefreshing,
-  outlookStatus,
-  outlookEvents,
-  isOutlookLoading,
   focusedItemKey,
   getItemWorkspaceLabel,
   formatDueLabel,
   formatReminderLabel,
   getTodayReason,
-  formatCalendarEventRange,
-  onConnectOutlookCalendar,
-  onDisconnectOutlookCalendar,
   onGenerateAgenda,
   onFocus,
   onOpenTask,
@@ -82,66 +70,7 @@ export function AgendaView({
           </>
         }
       />
-
       <div className="today-grid">
-        {!isAllWorkspacesMode && (
-          <div className="detail-card agenda-calendar-card">
-            <div className="agenda-calendar-header">
-              <div>
-                <p className="eyebrow">Calendar sync</p>
-                <h3>Outlook calendar</h3>
-              </div>
-              {outlookStatus?.isConnected ? (
-                <button className="ghost-button" type="button" onClick={onDisconnectOutlookCalendar}>
-                  Disconnect
-                </button>
-              ) : (
-                <button
-                  className="primary-button"
-                  type="button"
-                  disabled={isOutlookLoading || !outlookStatus?.isConfigured}
-                  onClick={onConnectOutlookCalendar}
-                >
-                  {outlookStatus?.isConfigured ? "Connect Outlook" : "Configure Outlook first"}
-                </button>
-              )}
-            </div>
-
-            {isOutlookLoading ? (
-              <p>Loading Outlook calendar status...</p>
-            ) : !outlookStatus?.isConfigured ? (
-              <p>Outlook calendar is not configured yet. Add the Microsoft app settings in Admin → Integrations.</p>
-            ) : outlookStatus.isConnected ? (
-              <div className="agenda-calendar-events">
-                <p>
-                  Connected as <strong>{outlookStatus.accountEmail ?? "your Outlook account"}</strong>.
-                </p>
-                {outlookEvents.length > 0 ? (
-                  <ul className="agenda-calendar-event-list">
-                    {outlookEvents.slice(0, 6).map((event) => (
-                      <li key={event.id} className="agenda-calendar-event-item">
-                        <div>
-                          <strong>{event.subject}</strong>
-                          <span>{formatCalendarEventRange(event)}</span>
-                        </div>
-                        {event.webLink ? (
-                          <a href={event.webLink} target="_blank" rel="noopener noreferrer">
-                            Open
-                          </a>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p>No busy Outlook events found for the next 7 days.</p>
-                )}
-              </div>
-            ) : (
-              <p>Connect your Outlook calendar to show upcoming busy time directly in the agenda.</p>
-            )}
-          </div>
-        )}
-
         {isAllWorkspacesMode ? (
           <div className="empty-state today-empty">
             <p>Agenda is unavailable in All Workspaces mode.</p>

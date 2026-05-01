@@ -5,7 +5,6 @@ export * from "./tasks";
 export * from "./agenda";
 export * from "./captured-items";
 export * from "./notifications";
-export * from "./outlook";
 export * from "./one-on-ones";
 
 import {
