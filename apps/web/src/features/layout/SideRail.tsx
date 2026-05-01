@@ -134,7 +134,7 @@ export function SideRail({
           <button
             key={view}
             type="button"
-            className={`rail-destination ${activeView === view ? "active" : ""}`}
+            className={`rail-destination rail-destination-${view} ${activeView === view ? "active" : ""}`}
             onClick={() => onChangeView(view)}
             aria-pressed={activeView === view}
           >

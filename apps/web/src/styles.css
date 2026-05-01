@@ -3,26 +3,31 @@
   font-family: "Avenir Next", "Segoe UI", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  --ts-bg: #f4f2f4;
+  --ts-bg: #f4f7fb;
   --ts-surface: #ffffff;
-  --ts-surface-muted: #eef3f8;
-  --ts-primary: #3f4167;
-  --ts-accent: #4cadfb;
-  --ts-accent-warm: #ea8d12;
-  --ts-dark: #2c343c;
+  --ts-surface-muted: #eaf0f6;
+  --ts-primary: #3b82f6;
+  --ts-accent: #3b82f6;
+  --ts-accent-warm: #3b82f6;
+  --ts-dark: #1f2937;
   --ts-light: #ffffff;
-  --ts-success: #6fcf97;
-  --ts-warning: #f2c94c;
-  --ts-error: #eb5757;
-  --ts-gray: #687381;
-  --ts-gray-hover: #515d6c;
-  --ts-border: rgba(63, 65, 103, 0.14);
-  --ts-shadow: rgba(44, 52, 60, 0.12);
+  --ts-success: #10b981;
+  --ts-warning: #f59e0b;
+  --ts-error: #ef4444;
+  --ts-gray: #596c7a;
+  --ts-gray-hover: #4a5a66;
+  --ts-text-secondary: #6b7280;
+  --ts-border: rgba(89, 108, 122, 0.14);
+  --ts-shadow: rgba(31, 41, 55, 0.12);
+  --ts-feature-inbox: #6366f1;
+  --ts-feature-alerts: #f97316;
+  --ts-feature-one-on-ones: #8b5cf6;
+  --ts-feature-team-admin: #0ea5e9;
   color: var(--ts-dark);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 24%),
-    radial-gradient(circle at top right, rgba(76, 173, 251, 0.16), transparent 30%),
-    linear-gradient(160deg, #ffffff 0%, var(--ts-bg) 48%, #e8edf3 100%);
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.12), transparent 30%),
+    linear-gradient(160deg, #ffffff 0%, var(--ts-bg) 48%, #e8eef5 100%);
 }
 
 * {
@@ -134,10 +139,10 @@ a {
   flex-direction: column;
   align-items: center;
   gap: 0.7rem;
-  border: 1px solid rgba(63, 65, 103, 0.18);
+  border: 1px solid rgba(89, 108, 122, 0.18);
   border-radius: 26px;
-  background: linear-gradient(180deg, rgba(63, 65, 103, 0.97), rgba(44, 52, 60, 0.96));
-  box-shadow: 0 18px 48px rgba(44, 52, 60, 0.2);
+  background: linear-gradient(180deg, rgba(89, 108, 122, 0.98), rgba(31, 41, 55, 0.98));
+  box-shadow: 0 18px 48px rgba(31, 41, 55, 0.18);
   padding: 0.85rem 0.55rem;
 }
 
@@ -240,7 +245,7 @@ a {
 
 .rail-destination.active .rail-icon {
   border-color: rgba(89, 108, 122, 0.14);
-  background: rgba(58, 141, 255, 0.12);
+  background: rgba(59, 130, 246, 0.12);
 }
 
 .rail-label,
@@ -259,7 +264,33 @@ a {
 }
 
 .rail-destination.active .rail-count {
-  background: rgba(58, 141, 255, 0.16);
+  background: rgba(59, 130, 246, 0.16);
+}
+
+.rail-destination-inbox.active .rail-icon,
+.rail-destination-inbox.active .rail-count {
+  background: rgba(99, 102, 241, 0.14);
+  color: var(--ts-feature-inbox);
+}
+
+.rail-destination-notifications.active .rail-icon,
+.rail-destination-notifications.active .rail-count {
+  background: rgba(249, 115, 22, 0.14);
+  color: var(--ts-feature-alerts);
+}
+
+.rail-destination-one-on-ones.active .rail-icon,
+.rail-destination-one-on-ones.active .rail-count {
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--ts-feature-one-on-ones);
+}
+
+.rail-destination-team.active .rail-icon,
+.rail-destination-team.active .rail-count,
+.rail-destination-admin.active .rail-icon,
+.rail-destination-admin.active .rail-count {
+  background: rgba(14, 165, 233, 0.14);
+  color: var(--ts-feature-team-admin);
 }
 
 .rail-signout {
@@ -338,7 +369,7 @@ a {
 .hero-copy {
   margin: 0.85rem 0 0;
   max-width: 40rem;
-  color: rgba(31, 42, 51, 0.72);
+  color: var(--ts-text-secondary);
 }
 
 .intro-panel-compact {
@@ -389,7 +420,7 @@ a {
 .column-empty,
 .board-header-actions span,
 .today-meta span {
-  color: rgba(31, 42, 51, 0.68);
+  color: var(--ts-text-secondary);
 }
 
 .board-header-actions {
@@ -546,8 +577,8 @@ a {
 }
 
 .admin-user-card.is-selected-report {
-  border-color: rgba(76, 173, 251, 0.32);
-  box-shadow: 0 12px 28px rgba(76, 173, 251, 0.1);
+  border-color: rgba(14, 165, 233, 0.32);
+  box-shadow: 0 12px 28px rgba(14, 165, 233, 0.1);
 }
 
 .admin-user-card p,
@@ -572,8 +603,8 @@ a {
 }
 
 .role-badge.admin {
-  background: rgba(58, 141, 255, 0.14);
-  color: var(--ts-accent);
+  background: rgba(14, 165, 233, 0.14);
+  color: var(--ts-feature-team-admin);
 }
 
 .role-badge.owner {
@@ -598,11 +629,11 @@ a {
 }
 
 .capture-card.slack {
-  background: linear-gradient(180deg, rgba(89, 108, 122, 0.14), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(245, 250, 255, 0.96));
 }
 
 .capture-card.email {
-  background: linear-gradient(180deg, rgba(58, 141, 255, 0.12), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.12), rgba(245, 250, 255, 0.96));
 }
 
 .capture-card-top,
@@ -643,7 +674,7 @@ a {
 }
 
 .capture-badge.email {
-  color: var(--ts-accent);
+  color: var(--ts-feature-inbox);
 }
 
 .capture-meta,
@@ -675,19 +706,19 @@ a {
 }
 
 .today-card.blocked {
-  background: linear-gradient(180deg, rgba(235, 87, 87, 0.18), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.todo {
-  background: linear-gradient(180deg, rgba(242, 201, 76, 0.28), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(156, 163, 175, 0.24), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.in-progress {
-  background: linear-gradient(180deg, rgba(58, 141, 255, 0.18), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.done {
-  background: linear-gradient(180deg, rgba(111, 207, 151, 0.22), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.18), rgba(245, 250, 255, 0.96));
 }
 
 .today-card h3 {
@@ -746,27 +777,27 @@ a {
 }
 
 .status-select.blocked {
-  background: rgba(235, 87, 87, 0.16);
-  border-color: rgba(235, 87, 87, 0.32);
-  color: #8d2f2f;
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.32);
+  color: #b42318;
 }
 
 .status-select.todo {
-  background: rgba(242, 201, 76, 0.24);
-  border-color: rgba(242, 201, 76, 0.34);
-  color: #8c6c16;
+  background: rgba(156, 163, 175, 0.2);
+  border-color: rgba(156, 163, 175, 0.34);
+  color: #59616d;
 }
 
 .status-select.in-progress {
-  background: rgba(58, 141, 255, 0.18);
-  border-color: rgba(58, 141, 255, 0.32);
-  color: #1f5fbe;
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.34);
+  color: #b45309;
 }
 
 .status-select.done {
-  background: rgba(111, 207, 151, 0.22);
-  border-color: rgba(111, 207, 151, 0.34);
-  color: #2d7a4a;
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.34);
+  color: #047857;
 }
 
 .today-empty {
@@ -790,19 +821,19 @@ a {
 }
 
 .board-column.blocked {
-  background: linear-gradient(180deg, rgba(235, 87, 87, 0.16), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.todo {
-  background: linear-gradient(180deg, rgba(242, 201, 76, 0.22), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, rgba(156, 163, 175, 0.18), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.in-progress {
-  background: linear-gradient(180deg, rgba(58, 141, 255, 0.16), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.done {
-  background: linear-gradient(180deg, rgba(111, 207, 151, 0.18), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.16), rgba(245, 250, 255, 0.92));
 }
 
 .board-column header {
@@ -834,15 +865,15 @@ a {
 }
 
 .board-column.todo .column-icon {
-  color: #9d7b1c;
+  color: #6b7280;
 }
 
 .board-column.in-progress .column-icon {
-  color: var(--ts-accent);
+  color: var(--ts-warning);
 }
 
 .board-column.done .column-icon {
-  color: #2f9b5b;
+  color: var(--ts-success);
 }
 
 .board-column h3,
@@ -870,23 +901,23 @@ a {
 }
 
 .task-card.blocked {
-  background: linear-gradient(180deg, rgba(235, 87, 87, 0.16), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(235, 87, 87, 0.24);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(245, 250, 255, 0.96));
+  border: 1px solid rgba(239, 68, 68, 0.24);
 }
 
 .task-card.todo {
-  background: linear-gradient(180deg, rgba(242, 201, 76, 0.22), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(242, 201, 76, 0.24);
+  background: linear-gradient(180deg, rgba(156, 163, 175, 0.2), rgba(245, 250, 255, 0.96));
+  border: 1px solid rgba(156, 163, 175, 0.24);
 }
 
 .task-card.in-progress {
-  background: linear-gradient(180deg, rgba(58, 141, 255, 0.16), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(58, 141, 255, 0.24);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(245, 250, 255, 0.96));
+  border: 1px solid rgba(245, 158, 11, 0.24);
 }
 
 .task-card.done {
-  background: linear-gradient(180deg, rgba(111, 207, 151, 0.18), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(111, 207, 151, 0.24);
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.16), rgba(245, 250, 255, 0.96));
+  border: 1px solid rgba(16, 185, 129, 0.24);
 }
 
 .due-pill {
@@ -975,8 +1006,8 @@ a {
 .task-form textarea:focus,
 .task-form select:focus,
 .today-actions select:focus {
-  outline: 2px solid rgba(234, 141, 18, 0.3);
-  border-color: rgba(76, 173, 251, 0.5);
+  outline: 2px solid rgba(59, 130, 246, 0.22);
+  border-color: rgba(59, 130, 246, 0.5);
 }
 
 .form-row {
@@ -1030,7 +1061,7 @@ a {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, var(--ts-accent), var(--ts-accent-warm));
+  background: var(--ts-primary);
   color: var(--ts-light);
   font-weight: 700;
 }
@@ -1328,11 +1359,11 @@ a {
 }
 
 .calendar-day-button.is-today {
-  box-shadow: inset 0 0 0 1px rgba(58, 141, 255, 0.36);
+  box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.36);
 }
 
 .calendar-day-button.is-selected {
-  background: linear-gradient(135deg, var(--ts-accent), #6caeff);
+  background: linear-gradient(135deg, var(--ts-accent), #60a5fa);
   color: #ffffff;
   font-weight: 700;
 }
@@ -1727,8 +1758,8 @@ a {
 }
 
 .notification-card.is-unread {
-  border-color: rgba(58, 141, 255, 0.28);
-  box-shadow: 0 12px 28px rgba(58, 141, 255, 0.08);
+  border-color: rgba(249, 115, 22, 0.28);
+  box-shadow: 0 12px 28px rgba(249, 115, 22, 0.08);
 }
 
 .notification-card-top {
@@ -1766,8 +1797,8 @@ a {
 }
 
 .notification-dot.is-unread {
-  background: var(--ts-accent);
-  box-shadow: 0 0 0 6px rgba(58, 141, 255, 0.12);
+  background: var(--ts-feature-alerts);
+  box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.12);
 }
 
 .notification-time {
