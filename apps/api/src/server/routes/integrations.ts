@@ -12,10 +12,20 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function hasValidInboundEmailToken(providedToken?: string | null) {
+  const expectedToken = process.env.INBOUND_EMAIL_TOKEN?.trim();
+  return Boolean(expectedToken) && providedToken?.trim() === expectedToken;
+}
+
 export function createIntegrationsRouter() {
   const router = express.Router();
 
   router.post(API_ROUTES.integrations.emailInbound, async (request, response) => {
+    if (!hasValidInboundEmailToken(request.header("x-inbound-email-token"))) {
+      response.status(401).json({ error: "Invalid inbound email token." });
+      return;
+    }
+
     const input = (request.body ?? {}) as Partial<EmailInboundInput>;
 
     if (typeof input.subject !== "string" || !input.subject.trim()) {

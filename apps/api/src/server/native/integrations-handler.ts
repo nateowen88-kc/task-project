@@ -7,6 +7,7 @@ import {
 } from "../services/capture-service.js";
 import { API_ROUTES } from "../../../../../src/shared/api-routes.js";
 import {
+  getHeader,
   getPathname,
   methodNotAllowed,
   NativeRequest,
@@ -21,11 +22,21 @@ function stripHtml(value: string) {
   return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function hasValidInboundEmailToken(providedToken?: string | null) {
+  const expectedToken = process.env.INBOUND_EMAIL_TOKEN?.trim();
+  return Boolean(expectedToken) && providedToken?.trim() === expectedToken;
+}
+
 export default async function integrationsHandler(request: NativeRequest, response: NativeResponse) {
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
 
   if (method === "POST" && pathname === API_ROUTES.integrations.emailInbound) {
+    if (!hasValidInboundEmailToken(getHeader(request, "x-inbound-email-token"))) {
+      sendJson(response, 401, { error: "Invalid inbound email token." });
+      return;
+    }
+
     const input = (await readJsonBody<Partial<EmailInboundInput>>(request)) ?? {};
 
     if (typeof input.subject !== "string" || !input.subject.trim()) {
