@@ -25,7 +25,7 @@ Render service setup:
    - `RESEND_REPLY_TO_EMAIL=...`
    - `SLACK_SIGNING_SECRET=...`
    - `SLACK_DISABLE_SIGNATURE_VERIFICATION=false`
-   - `EMAIL_INBOUND_TOKEN=...`
+   - `INBOUND_EMAIL_TOKEN=...`
 4. Add a custom domain on Render:
    - `api.timesmithhq.com`
 5. In Cloudflare DNS, point `api.timesmithhq.com` to the Render target Render gives you.

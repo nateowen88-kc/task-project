@@ -7,7 +7,7 @@ Task Flow supports email capture into the same `Capture Inbox` used by Slack.
 Add this to your local `.env`:
 
 ```bash
-EMAIL_INBOUND_TOKEN="your-email-inbound-token"
+INBOUND_EMAIL_TOKEN="your-email-inbound-token"
 ```
 
 ## Inbound Endpoint
@@ -19,7 +19,7 @@ Send `POST` requests to:
 Include:
 
 - Header:
-  - `Authorization: Bearer <EMAIL_INBOUND_TOKEN>`
+  - `Authorization: Bearer <INBOUND_EMAIL_TOKEN>`
 - JSON body:
 
 ```json
@@ -37,8 +37,8 @@ Include:
 
 You can authenticate with either:
 
-- `Authorization: Bearer <EMAIL_INBOUND_TOKEN>`
-- `X-Email-Inbound-Token: <EMAIL_INBOUND_TOKEN>`
+- `Authorization: Bearer <INBOUND_EMAIL_TOKEN>`
+- `X-Email-Inbound-Token: <INBOUND_EMAIL_TOKEN>`
 - `token` in the JSON body
 
 ## Behavior
