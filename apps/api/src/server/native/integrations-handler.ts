@@ -27,13 +27,28 @@ function hasValidInboundEmailToken(providedToken?: string | null) {
   return Boolean(expectedToken) && providedToken?.trim() === expectedToken;
 }
 
+function getInboundEmailTokenFailure(providedToken?: string | null) {
+  const expectedToken = process.env.INBOUND_EMAIL_TOKEN?.trim();
+  if (!expectedToken) {
+    return "missing token env";
+  }
+
+  if (providedToken?.trim() !== expectedToken) {
+    return "token mismatch";
+  }
+
+  return null;
+}
+
 export default async function integrationsHandler(request: NativeRequest, response: NativeResponse) {
   const pathname = getPathname(request);
   const method = request.method ?? "GET";
 
   if (method === "POST" && pathname === API_ROUTES.integrations.emailInbound) {
-    if (!hasValidInboundEmailToken(getHeader(request, "x-inbound-email-token"))) {
-      sendJson(response, 401, { error: "Invalid inbound email token." });
+    const providedToken = getHeader(request, "x-inbound-email-token");
+    const tokenFailure = getInboundEmailTokenFailure(providedToken);
+    if (tokenFailure) {
+      sendJson(response, 401, { error: `Invalid inbound email token: ${tokenFailure}.` });
       return;
     }
 
