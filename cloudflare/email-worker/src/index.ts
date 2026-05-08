@@ -37,8 +37,10 @@ export default {
     });
 
     if (!response.ok) {
-      console.error("TimeSmith inbound email failed", response.status);
+      const detail = await response.text();
+      console.error("TimeSmith inbound email failed", response.status, detail);
       message.setReject("Failed to process message");
     }
+
   },
 };

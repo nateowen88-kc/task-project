@@ -20,6 +20,15 @@ npx wrangler secret put INBOUND_EMAIL_TOKEN
 
 - `cloudflare/email-worker/wrangler.jsonc`
 - `cloudflare/email-worker/src/index.ts`
+- `cloudflare/email-worker/package.json`
+
+## Cloudflare build settings
+
+If you connect this repo directly to Cloudflare, set:
+
+- Root directory: `cloudflare/email-worker`
+
+That prevents Cloudflare from installing the repo root package and running the app's Prisma `postinstall`.
 
 ## Cloudflare setup
 
