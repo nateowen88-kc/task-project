@@ -428,6 +428,19 @@ function extractRecipientLocalParts(recipientHeader?: string | null) {
 }
 
 export async function resolveCaptureWorkspaceId(inputWorkspaceSlug?: string | null, recipientEmail?: string | null) {
+  const recipientKeys = extractRecipientLocalParts(recipientEmail);
+
+  if (recipientKeys.includes("task")) {
+    const defaultTaskMailboxWorkspace = await prisma.workspace.findUnique({
+      where: { slug: "nate-s-rts-workspace" },
+      select: { id: true },
+    });
+
+    if (defaultTaskMailboxWorkspace) {
+      return defaultTaskMailboxWorkspace.id;
+    }
+  }
+
   if (inputWorkspaceSlug?.trim()) {
     const explicit = await prisma.workspace.findUnique({
       where: { slug: inputWorkspaceSlug.trim() },
@@ -439,7 +452,6 @@ export async function resolveCaptureWorkspaceId(inputWorkspaceSlug?: string | nu
     }
   }
 
-  const recipientKeys = extractRecipientLocalParts(recipientEmail);
   if (recipientKeys.length > 0) {
     const byRecipient = await prisma.workspace.findFirst({
       where: {
