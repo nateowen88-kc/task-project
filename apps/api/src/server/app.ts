@@ -99,13 +99,13 @@ export function createApp() {
   const app = createBaseApp();
 
   app.use("/api/auth", createAuthRouter());
+  app.use("/", createIntegrationsRouter());
   app.use("/api/notifications", createNotificationsRouter());
   app.use("/api/workspace-members", createWorkspaceMembersRouter());
   app.use("/", createTodayRouter());
   app.use("/", createTasksRouter());
   app.use("/", createOneOnOnesRouter());
   app.use("/", createCapturedItemsRouter());
-  app.use("/", createIntegrationsRouter());
   app.use("/api/admin", requireWorkspaceAdmin, createAdminRouter());
 
   return app;
