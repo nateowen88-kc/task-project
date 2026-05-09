@@ -62,6 +62,7 @@ export function TeamView({
     setDirectReports,
     onError,
   });
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const selectedReport = useMemo(
     () => directReports.find((report) => report.id === selectedReportId) ?? null,
@@ -132,6 +133,13 @@ export function TeamView({
     setCreateForm((current) => ({ ...current, role: directReportRoleSelectOptions[0].value }));
   }, [createForm.role, directReportRoleSelectOptions, setCreateForm]);
 
+  async function handleCreateSubmit() {
+    await handleCreateReport();
+    if (isDirectReportConfigReady) {
+      setIsCreateModalOpen(false);
+    }
+  }
+
   return (
     <section className="panel admin-panel">
       <SectionHeader
@@ -142,247 +150,276 @@ export function TeamView({
         actions={<span>Manage your direct reports and their standing 1:1 cadence here.</span>}
       />
 
-      <div className="one-on-one-grid">
-        <section className="admin-form-panel">
-          <div className="section-heading">
-            <SectionHeaderLead>
-              <p className="eyebrow">Team setup</p>
-              <h2>Add direct report</h2>
-            </SectionHeaderLead>
-          </div>
-
-          <form
-            className="task-form"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleCreateReport();
-            }}
+      <section className="admin-form-panel">
+        <div className="section-heading">
+          <SectionHeaderLead>
+            <p className="eyebrow">Your team</p>
+            <h2>Team members</h2>
+          </SectionHeaderLead>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            disabled={!isDirectReportConfigReady}
           >
-            <label>
-              Direct report name
-              <AppSelect
-                ariaLabel="Direct report name"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.reportName}
-                options={directReportNameSelectOptions}
-                onChange={(value) => setCreateForm((current) => ({ ...current, reportName: value }))}
-                disabled={!isDirectReportConfigReady}
-              />
-            </label>
+            Add team member
+          </button>
+        </div>
 
-            <label>
-              Email
-              <input
-                type="email"
-                value={createForm.reportEmail}
-                onChange={(event) => setCreateForm((current) => ({ ...current, reportEmail: event.target.value }))}
-                placeholder="optional"
-              />
-            </label>
-
-            <label>
-              Role
-              <AppSelect
-                ariaLabel="Direct report role"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.role}
-                options={directReportRoleSelectOptions}
-                onChange={(value) => setCreateForm((current) => ({ ...current, role: value }))}
-                disabled={!isDirectReportConfigReady}
-              />
-            </label>
-
-            <label>
-              Cadence
-              <AppSelect
-                ariaLabel="Meeting cadence"
-                className="app-select"
-                menuClassName="app-select-menu"
-                value={createForm.cadence}
-                options={cadenceOptions}
-                onChange={(value) =>
-                  setCreateForm((current) => ({ ...current, cadence: value as OneOnOneCadence }))
-                }
-              />
-            </label>
-
-            <label>
-              Next meeting
-              <input
-                type="datetime-local"
-                value={createForm.nextMeetingAt}
-                onChange={(event) => setCreateForm((current) => ({ ...current, nextMeetingAt: event.target.value }))}
-              />
-            </label>
-
-            <label>
-              Notes
-              <textarea
-                rows={4}
-                value={createForm.notes}
-                onChange={(event) => setCreateForm((current) => ({ ...current, notes: event.target.value }))}
-                placeholder="Context, goals, support areas, coaching notes..."
-              />
-            </label>
-
-            <div className="admin-form-actions">
-              <button className="primary-button" type="submit" disabled={isCreatingReport || !isDirectReportConfigReady}>
-                {isCreatingReport ? "Creating..." : "Add direct report"}
-              </button>
-            </div>
-          </form>
-        </section>
-
-        <section className="admin-form-panel">
-          <div className="section-heading">
-            <SectionHeaderLead>
-              <p className="eyebrow">Your team</p>
-              <h2>Direct reports</h2>
-            </SectionHeaderLead>
+        {!isDirectReportConfigReady ? (
+          <div className="empty-state">
+            <p>Team member options are not configured yet.</p>
+            <span>Add direct report names and roles in Admin first.</span>
           </div>
+        ) : null}
 
-          {directReports.length > 0 ? (
-            <div className="admin-users-list">
-              {directReports.map((report) => {
-                const isExpanded = selectedReportId === report.id;
+        {directReports.length > 0 ? (
+          <div className="admin-users-list">
+            {directReports.map((report) => {
+              const isExpanded = selectedReportId === report.id;
 
-                return (
-                  <article key={report.id} className={`admin-user-card ${isExpanded ? "is-selected-report" : ""}`}>
-                    <div className="admin-user-top">
-                      <div>
-                        <h3>{report.reportName}</h3>
-                        <p>{report.reportEmail || "No email saved"}</p>
-                        <div className="admin-user-meta">
-                          <span>{report.role}</span>
-                          <span>{cadenceOptions.find((option) => option.value === report.cadence)?.label}</span>
-                          <span>
-                            {report.nextMeetingAt
-                              ? `Next: ${formatReceivedLabel(report.nextMeetingAt)}`
-                              : "No meeting scheduled"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="admin-user-actions">
-                        <button
-                          className="ghost-button compact"
-                          type="button"
-                          onClick={() => setSelectedReportId(isExpanded ? null : report.id)}
-                        >
-                          {isExpanded ? "Close" : "Open"}
-                        </button>
+              return (
+                <article key={report.id} className={`admin-user-card ${isExpanded ? "is-selected-report" : ""}`}>
+                  <div className="admin-user-top">
+                    <div>
+                      <h3>{report.reportName}</h3>
+                      <div className="admin-user-meta">
+                        <span>{report.role}</span>
+                        <span>{cadenceOptions.find((option) => option.value === report.cadence)?.label}</span>
+                        <span>
+                          {report.nextMeetingAt
+                            ? formatReceivedLabel(report.nextMeetingAt)
+                            : "No meeting scheduled"}
+                        </span>
                       </div>
                     </div>
-
-                    {isExpanded ? (
-                      <form
-                        className="task-form"
-                        style={{ marginTop: "16px" }}
-                        onSubmit={(event) => {
-                          event.preventDefault();
-                          void handleSaveReport(report.id, reportDraft).then(() => {
-                            setSelectedReportId(null);
-                          });
-                        }}
+                    <div className="admin-user-actions">
+                      <button
+                        className="ghost-button compact"
+                        type="button"
+                        onClick={() => setSelectedReportId(isExpanded ? null : report.id)}
                       >
-                        <label>
-                          Direct report name
-                          <AppSelect
-                            ariaLabel="Selected direct report name"
-                            className="app-select"
-                            menuClassName="app-select-menu"
-                            value={reportDraft.reportName}
-                            options={reportDraftNameOptions}
-                            onChange={(value) => setReportDraft((current) => ({ ...current, reportName: value }))}
-                            disabled={!isDirectReportConfigReady}
-                          />
-                        </label>
+                        {isExpanded ? "Close" : "Open"}
+                      </button>
+                    </div>
+                  </div>
 
-                        <label>
-                          Email
-                          <input
-                            type="email"
-                            value={reportDraft.reportEmail}
-                            onChange={(event) => setReportDraft((current) => ({ ...current, reportEmail: event.target.value }))}
-                            placeholder="optional"
-                          />
-                        </label>
+                  {isExpanded ? (
+                    <form
+                      className="task-form"
+                      style={{ marginTop: "16px" }}
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void handleSaveReport(report.id, reportDraft).then(() => {
+                          setSelectedReportId(null);
+                        });
+                      }}
+                    >
+                      <label>
+                        Name
+                        <AppSelect
+                          ariaLabel="Selected team member name"
+                          className="app-select"
+                          menuClassName="app-select-menu"
+                          value={reportDraft.reportName}
+                          options={reportDraftNameOptions}
+                          onChange={(value) => setReportDraft((current) => ({ ...current, reportName: value }))}
+                          disabled={!isDirectReportConfigReady}
+                        />
+                      </label>
 
-                        <label>
-                          Role
-                          <AppSelect
-                            ariaLabel="Selected direct report role"
-                            className="app-select"
-                            menuClassName="app-select-menu"
-                            value={reportDraft.role}
-                            options={reportDraftRoleOptions}
-                            onChange={(value) => setReportDraft((current) => ({ ...current, role: value }))}
-                            disabled={!isDirectReportConfigReady}
-                          />
-                        </label>
+                      <label>
+                        Role
+                        <AppSelect
+                          ariaLabel="Selected team member role"
+                          className="app-select"
+                          menuClassName="app-select-menu"
+                          value={reportDraft.role}
+                          options={reportDraftRoleOptions}
+                          onChange={(value) => setReportDraft((current) => ({ ...current, role: value }))}
+                          disabled={!isDirectReportConfigReady}
+                        />
+                      </label>
 
-                        <label>
-                          Cadence
-                          <AppSelect
-                            ariaLabel="Direct report cadence"
-                            className="app-select"
-                            menuClassName="app-select-menu"
-                            value={reportDraft.cadence}
-                            options={cadenceOptions}
-                            onChange={(value) => setReportDraft((current) => ({ ...current, cadence: value as OneOnOneCadence }))}
-                          />
-                        </label>
+                      <label>
+                        Cadence
+                        <AppSelect
+                          ariaLabel="Selected team member cadence"
+                          className="app-select"
+                          menuClassName="app-select-menu"
+                          value={reportDraft.cadence}
+                          options={cadenceOptions}
+                          onChange={(value) => setReportDraft((current) => ({ ...current, cadence: value as OneOnOneCadence }))}
+                        />
+                      </label>
 
-                        <label>
-                          Next meeting
-                          <input
-                            type="datetime-local"
-                            value={reportDraft.nextMeetingAt}
-                            onChange={(event) => setReportDraft((current) => ({ ...current, nextMeetingAt: event.target.value }))}
-                          />
-                        </label>
+                      <label>
+                        Next meeting
+                        <input
+                          type="datetime-local"
+                          value={reportDraft.nextMeetingAt}
+                          onChange={(event) => setReportDraft((current) => ({ ...current, nextMeetingAt: event.target.value }))}
+                        />
+                      </label>
 
-                        <label>
-                          Private notes
-                          <textarea
-                            rows={5}
-                            value={reportDraft.notes}
-                            onChange={(event) => setReportDraft((current) => ({ ...current, notes: event.target.value }))}
-                          />
-                        </label>
+                      <label>
+                        Email
+                        <input
+                          type="email"
+                          value={reportDraft.reportEmail}
+                          onChange={(event) => setReportDraft((current) => ({ ...current, reportEmail: event.target.value }))}
+                          placeholder="optional"
+                        />
+                      </label>
 
-                        <div className="admin-form-actions">
-                          <button
-                            className="ghost-button danger-button"
-                            type="button"
-                            disabled={deletingReportId === report.id}
-                            onClick={() => void handleDeleteReport(report.id)}
-                          >
-                            {deletingReportId === report.id ? "Deleting..." : "Delete"}
-                          </button>
-                          <button
-                            className="primary-button"
-                            type="submit"
-                            disabled={savingReportId === report.id || !isDirectReportConfigReady}
-                          >
-                            {savingReportId === report.id ? "Saving..." : "Save"}
-                          </button>
-                        </div>
-                      </form>
-                    ) : null}
-                  </article>
-                );
-              })}
+                      <label>
+                        Private notes
+                        <textarea
+                          rows={5}
+                          value={reportDraft.notes}
+                          onChange={(event) => setReportDraft((current) => ({ ...current, notes: event.target.value }))}
+                        />
+                      </label>
+
+                      <div className="admin-form-actions">
+                        <button
+                          className="ghost-button danger-button"
+                          type="button"
+                          disabled={deletingReportId === report.id}
+                          onClick={() => void handleDeleteReport(report.id)}
+                        >
+                          {deletingReportId === report.id ? "Deleting..." : "Delete"}
+                        </button>
+                        <button
+                          className="primary-button"
+                          type="submit"
+                          disabled={savingReportId === report.id || !isDirectReportConfigReady}
+                        >
+                          {savingReportId === report.id ? "Saving..." : "Save"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <p>No team members yet.</p>
+            <span>Use the button above to add your first direct report.</span>
+          </div>
+        )}
+      </section>
+
+      {isCreateModalOpen ? (
+        <div className="modal-backdrop" onClick={() => setIsCreateModalOpen(false)} role="presentation">
+          <div className="modal-card" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="modal-header">
+              <div>
+                <p className="modal-eyebrow">Team setup</p>
+                <h2>Add team member</h2>
+              </div>
+              <button className="ghost-button compact" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                Close
+              </button>
             </div>
-          ) : (
-            <div className="empty-state">
-              <p>No direct reports yet.</p>
-              <span>Add the first one from the form on the left.</span>
-            </div>
-          )}
-        </section>
-      </div>
+
+            <form
+              className="modal-shell"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void handleCreateSubmit();
+              }}
+            >
+              <div className="modal-scroll">
+                <div className="task-form modal-form">
+                  <label>
+                    Name
+                    <AppSelect
+                      ariaLabel="Team member name"
+                      className="app-select"
+                      menuClassName="app-select-menu"
+                      value={createForm.reportName}
+                      options={directReportNameSelectOptions}
+                      onChange={(value) => setCreateForm((current) => ({ ...current, reportName: value }))}
+                      disabled={!isDirectReportConfigReady}
+                    />
+                  </label>
+
+                  <label>
+                    Role
+                    <AppSelect
+                      ariaLabel="Team member role"
+                      className="app-select"
+                      menuClassName="app-select-menu"
+                      value={createForm.role}
+                      options={directReportRoleSelectOptions}
+                      onChange={(value) => setCreateForm((current) => ({ ...current, role: value }))}
+                      disabled={!isDirectReportConfigReady}
+                    />
+                  </label>
+
+                  <label>
+                    Cadence
+                    <AppSelect
+                      ariaLabel="Team member cadence"
+                      className="app-select"
+                      menuClassName="app-select-menu"
+                      value={createForm.cadence}
+                      options={cadenceOptions}
+                      onChange={(value) =>
+                        setCreateForm((current) => ({ ...current, cadence: value as OneOnOneCadence }))
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Next meeting
+                    <input
+                      type="datetime-local"
+                      value={createForm.nextMeetingAt}
+                      onChange={(event) => setCreateForm((current) => ({ ...current, nextMeetingAt: event.target.value }))}
+                    />
+                  </label>
+
+                  <label>
+                    Email
+                    <input
+                      type="email"
+                      value={createForm.reportEmail}
+                      onChange={(event) => setCreateForm((current) => ({ ...current, reportEmail: event.target.value }))}
+                      placeholder="optional"
+                    />
+                  </label>
+
+                  <label>
+                    Notes
+                    <textarea
+                      rows={4}
+                      value={createForm.notes}
+                      onChange={(event) => setCreateForm((current) => ({ ...current, notes: event.target.value }))}
+                      placeholder="Context, goals, support areas, coaching notes..."
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="modal-actions modal-actions-bar">
+                <div className="modal-actions-left" />
+                <div className="modal-actions-right">
+                  <button className="ghost-button" type="button" onClick={() => setIsCreateModalOpen(false)}>
+                    Cancel
+                  </button>
+                  <button className="primary-button" type="submit" disabled={isCreatingReport || !isDirectReportConfigReady}>
+                    {isCreatingReport ? "Creating..." : "Add team member"}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
