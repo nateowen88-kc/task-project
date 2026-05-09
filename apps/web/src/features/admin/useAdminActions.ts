@@ -140,7 +140,7 @@ export function useAdminActions({
   }
 
   const ensureAppConfigLoaded = useCallback(async () => {
-    if (!canCreateWorkspaces || hasLoadedAppConfig) {
+    if (!canManageUsers || hasLoadedAppConfig) {
       return;
     }
 
@@ -152,7 +152,7 @@ export function useAdminActions({
     } catch (error) {
       onError(toErrorMessage(error, "Could not load app configuration."));
     }
-  }, [canCreateWorkspaces, hasLoadedAppConfig, onError]);
+  }, [canManageUsers, hasLoadedAppConfig, onError]);
 
   function startAdminEdit(user: AdminUser) {
     setAdminEditingUserId(user.id);

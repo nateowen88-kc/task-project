@@ -437,14 +437,14 @@ export default function App() {
   useEffect(() => {
     if (
       !session ||
-      !canCreateWorkspaces ||
+      !canManageUsers ||
       (activeView !== "admin" && activeView !== "one-on-ones" && activeView !== "team")
     ) {
       return;
     }
 
     void ensureAppConfigLoaded();
-  }, [activeView, canCreateWorkspaces, ensureAppConfigLoaded, session]);
+  }, [activeView, canManageUsers, ensureAppConfigLoaded, session]);
 
   useEffect(() => {
     if (
