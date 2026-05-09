@@ -386,20 +386,10 @@ export function createAdminRouter() {
   });
 
   router.get(API_ROUTES.admin.appConfig.replace("/api/admin", ""), async (request, response) => {
-    const auth = requireGodMode(request, response);
-    if (!auth) {
-      return;
-    }
-
     response.json(await getAdminAppConfig());
   });
 
   router.put(API_ROUTES.admin.appConfig.replace("/api/admin", ""), async (request, response) => {
-    const auth = requireGodMode(request, response);
-    if (!auth) {
-      return;
-    }
-
     const input = request.body as Partial<AdminAppConfig>;
 
     if (!validateUpdateAppConfigInput(input)) {

@@ -419,19 +419,11 @@ export default async function adminHandler(request: NativeRequest, response: Nat
   }
 
   if (method === "GET" && pathname === API_ROUTES.admin.appConfig) {
-    if (!requireGodMode()) {
-      return;
-    }
-
     sendJson(response, 200, await getAdminAppConfig());
     return;
   }
 
   if (method === "PUT" && pathname === API_ROUTES.admin.appConfig) {
-    if (!requireGodMode()) {
-      return;
-    }
-
     const input = (await readJsonBody<Partial<AdminAppConfig>>(request)) ?? {};
 
     if (!validateUpdateAppConfigInput(input)) {

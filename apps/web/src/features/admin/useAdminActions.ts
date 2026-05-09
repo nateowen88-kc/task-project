@@ -319,7 +319,7 @@ export function useAdminActions({
   async function handleAppConfigSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!canCreateWorkspaces) {
+    if (!canManageUsers) {
       onError("You do not have permission to manage app configuration.");
       return;
     }

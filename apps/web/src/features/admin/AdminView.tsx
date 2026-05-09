@@ -422,6 +422,62 @@ export function AdminView({
           </div>
         </section>
 
+        <section className="admin-form-panel">
+          <div className="section-heading">
+            <SectionHeaderLead>
+              <p className="eyebrow">Team setup</p>
+              <h2>Team member options</h2>
+            </SectionHeaderLead>
+          </div>
+
+          <form className="task-form" onSubmit={onAppConfigSubmit}>
+            <label>
+              Team member names
+              <textarea
+                rows={6}
+                value={directReportNameOptionsText}
+                onChange={(event) =>
+                  onAppConfigFormChange((current) => ({
+                    ...current,
+                    directReportNameOptions: event.target.value
+                      .split("\n")
+                      .map((item) => item.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder={"Jane Doe\nJohn Smith"}
+              />
+            </label>
+
+            <label>
+              Team member roles
+              <textarea
+                rows={6}
+                value={directReportRoleOptionsText}
+                onChange={(event) =>
+                  onAppConfigFormChange((current) => ({
+                    ...current,
+                    directReportRoleOptions: event.target.value
+                      .split("\n")
+                      .map((item) => item.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                placeholder={"Designer\nEngineer\nProduct manager"}
+              />
+            </label>
+
+            <div className="admin-form-actions">
+              <button className="ghost-button" type="button" onClick={onResetAppConfigForm}>
+                Reset
+              </button>
+              <button className="primary-button" type="submit" disabled={isAppConfigSaving || !hasLoadedAppConfig}>
+                {isAppConfigSaving ? "Saving..." : "Save team options"}
+              </button>
+            </div>
+          </form>
+        </section>
+
         {canCreateWorkspaces && (
           <section className="admin-form-panel">
             <div className="section-heading">
