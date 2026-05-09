@@ -156,14 +156,25 @@ export function TeamView({
             <p className="eyebrow">Your team</p>
             <h2>Team members</h2>
           </SectionHeaderLead>
-          <button
-            className="primary-button"
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            disabled={!isDirectReportConfigReady}
-          >
-            Add team member
-          </button>
+          <div className="admin-user-actions">
+            {selectedReportId ? (
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => setSelectedReportId(null)}
+              >
+                Minimize all
+              </button>
+            ) : null}
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => setIsCreateModalOpen(true)}
+              disabled={!isDirectReportConfigReady}
+            >
+              Add team member
+            </button>
+          </div>
         </div>
 
         {!isDirectReportConfigReady ? (
