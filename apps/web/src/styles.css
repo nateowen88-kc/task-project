@@ -760,6 +760,25 @@ a {
   color: #1d6e5b;
 }
 
+.view-toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.view-toggle-group .active-filter {
+  background: var(--ts-primary);
+  border-color: var(--ts-primary);
+  color: white;
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--ts-primary) 28%, transparent);
+}
+
+.view-toggle-group .active-filter:hover {
+  background: color-mix(in srgb, var(--ts-primary) 88%, black);
+  border-color: color-mix(in srgb, var(--ts-primary) 88%, black);
+  color: white;
+}
+
 .today-meta,
 .task-card-meta {
   display: flex;
