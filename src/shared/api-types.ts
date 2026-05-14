@@ -1,3 +1,5 @@
+import type { ThemeColorConfig } from "./theme-config.js";
+
 export type TaskStatus = "blocked" | "todo" | "in-progress" | "done";
 export type TaskImportance = "low" | "medium" | "high";
 export type RecurrenceRuleValue = "none" | "daily" | "weekdays" | "weekly" | "monthly";
@@ -10,6 +12,7 @@ export type WorkspaceInviteStatus = "pending" | "accepted" | "revoked" | "expire
 export type NotificationType = "task-assigned" | "comment-added" | "task-due" | "task-overdue";
 export type OneOnOneCadence = "weekly" | "biweekly" | "monthly" | "ad-hoc";
 export type OneOnOneMeetingStatus = "scheduled" | "completed" | "canceled";
+export type { ThemeColorConfig } from "./theme-config.js";
 
 export type AppPermissions = {
   canManageUsers: boolean;
@@ -392,6 +395,7 @@ export type AdminAppConfig = {
   appBaseUrl: string;
   directReportNameOptions: string[];
   directReportRoleOptions: string[];
+  themeColors: ThemeColorConfig;
 };
 
 export type AdminWorkspace = {

@@ -129,6 +129,7 @@ model AppConfig {
   emailInboundToken                  String?
   directReportNameOptions            String[] @default([])
   directReportRoleOptions            String[] @default([])
+  themeColors                        Json?
   createdAt                          DateTime @default(now())
   updatedAt                          DateTime @default(now()) @updatedAt
 }

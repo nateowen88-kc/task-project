@@ -55,6 +55,7 @@ import { useTaskActions } from "./features/tasks/useTaskActions";
 import { WorkflowHero } from "./features/workflow/WorkflowHero";
 import { WorkflowView, type WorkflowFilter } from "./features/workflow/WorkflowView";
 import { formatDueLabel, formatReminderLabel } from "./lib/formatters";
+import { DEFAULT_THEME_COLORS } from "../../../src/shared/theme-config.js";
 
 export default function App() {
   const [error, setError] = useState<string | null>(null);
@@ -435,23 +436,51 @@ export default function App() {
   ]);
 
   useEffect(() => {
+    const themeColors = appConfigForm.themeColors ?? DEFAULT_THEME_COLORS;
+    const root = document.documentElement;
+
+    root.style.setProperty("--ts-bg", themeColors.background);
+    root.style.setProperty("--ts-surface", themeColors.surface);
+    root.style.setProperty("--ts-surface-muted", themeColors.surfaceMuted);
+    root.style.setProperty("--ts-primary", themeColors.primary);
+    root.style.setProperty("--ts-accent", themeColors.accent);
+    root.style.setProperty("--ts-accent-warm", themeColors.accentWarm);
+    root.style.setProperty("--ts-dark", themeColors.textPrimary);
+    root.style.setProperty("--ts-light", themeColors.light);
+    root.style.setProperty("--ts-success", themeColors.success);
+    root.style.setProperty("--ts-warning", themeColors.warning);
+    root.style.setProperty("--ts-error", themeColors.error);
+    root.style.setProperty("--ts-gray", themeColors.secondaryUi);
+    root.style.setProperty("--ts-gray-hover", themeColors.secondaryUiHover);
+    root.style.setProperty("--ts-text-secondary", themeColors.textSecondary);
+    root.style.setProperty("--ts-feature-inbox", themeColors.featureInbox);
+    root.style.setProperty("--ts-feature-alerts", themeColors.featureAlerts);
+    root.style.setProperty("--ts-feature-one-on-ones", themeColors.featureOneOnOnes);
+    root.style.setProperty("--ts-feature-team-admin", themeColors.featureTeamAdmin);
+    root.style.setProperty("--ts-status-todo", themeColors.statusTodo);
+    root.style.setProperty("--ts-status-in-progress", themeColors.statusInProgress);
+    root.style.setProperty("--ts-status-blocked", themeColors.statusBlocked);
+    root.style.setProperty("--ts-status-done", themeColors.statusDone);
+  }, [appConfigForm.themeColors]);
+
+  useEffect(() => {
     if (
       !session ||
       !canManageUsers ||
-      (activeView !== "admin" && activeView !== "one-on-ones" && activeView !== "team")
+      hasLoadedAppConfig
     ) {
       return;
     }
 
     void ensureAppConfigLoaded();
-  }, [activeView, canManageUsers, ensureAppConfigLoaded, session]);
+  }, [canManageUsers, ensureAppConfigLoaded, hasLoadedAppConfig, session]);
 
   useEffect(() => {
     if (
       !session ||
-      isAllWorkspacesMode ||
+      !canCreateWorkspaces ||
       hasLoadedWorkflowAssets ||
-      (activeView !== "workflow" && activeView !== "admin")
+      (activeView !== "admin" && activeView !== "workflow")
     ) {
       return;
     }
@@ -459,7 +488,7 @@ export default function App() {
     void loadWorkflowAssets().catch((assetError) => {
       setError(assetError instanceof Error ? assetError.message : "Could not load task templates.");
     });
-  }, [activeView, hasLoadedWorkflowAssets, isAllWorkspacesMode, loadWorkflowAssets, session]);
+  }, [activeView, canCreateWorkspaces, hasLoadedWorkflowAssets, loadWorkflowAssets, session]);
 
   useEffect(() => {
     if (!session || !isModalOpen || hasLoadedWorkspaceMembers) {

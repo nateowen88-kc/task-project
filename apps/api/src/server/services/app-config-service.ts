@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 
 import { prisma } from "../lib/db.js";
 import type { AdminAppConfig, UpdateAppConfigPayload } from "../../../../../src/shared/api-types.js";
+import { mergeThemeColors, isValidHexColor, type ThemeColorConfig } from "../../../../../src/shared/theme-config.js";
 
 const APP_CONFIG_ID = "primary";
 
@@ -31,6 +32,7 @@ function fromRecord(record: AppConfigRecord): AdminAppConfig {
     appBaseUrl: normalizeString(record?.appBaseUrl),
     directReportNameOptions: normalizeStringList(record?.directReportNameOptions),
     directReportRoleOptions: normalizeStringList(record?.directReportRoleOptions),
+    themeColors: mergeThemeColors(record?.themeColors as Partial<ThemeColorConfig> | null | undefined),
   };
 }
 
@@ -39,7 +41,18 @@ function defaultFromEnv(): AdminAppConfig {
     appBaseUrl: normalizeString(process.env.APP_BASE_URL),
     directReportNameOptions: [],
     directReportRoleOptions: [],
+    themeColors: mergeThemeColors(),
   };
+}
+
+function isValidThemeColors(value: unknown): value is ThemeColorConfig {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  return Object.values(value as Record<string, unknown>).every(
+    (item) => typeof item === "string" && isValidHexColor(item),
+  );
 }
 
 export async function getAdminAppConfig(tx: AppConfigClient = prisma): Promise<AdminAppConfig> {
@@ -57,7 +70,8 @@ export function validateUpdateAppConfigInput(input: Partial<UpdateAppConfigPaylo
     Array.isArray(input.directReportNameOptions) &&
     input.directReportNameOptions.every((item) => typeof item === "string") &&
     Array.isArray(input.directReportRoleOptions) &&
-    input.directReportRoleOptions.every((item) => typeof item === "string")
+    input.directReportRoleOptions.every((item) => typeof item === "string") &&
+    isValidThemeColors(input.themeColors)
   );
 }
 
@@ -72,11 +86,13 @@ export async function updateAdminAppConfig(
       appBaseUrl: nullableString(input.appBaseUrl),
       directReportNameOptions: normalizeStringList(input.directReportNameOptions),
       directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
+      themeColors: mergeThemeColors(input.themeColors),
     },
     update: {
       appBaseUrl: nullableString(input.appBaseUrl),
       directReportNameOptions: normalizeStringList(input.directReportNameOptions),
       directReportRoleOptions: normalizeStringList(input.directReportRoleOptions),
+      themeColors: mergeThemeColors(input.themeColors),
     },
   });
 

@@ -23,6 +23,10 @@
   --ts-feature-alerts: #f97316;
   --ts-feature-one-on-ones: #8b5cf6;
   --ts-feature-team-admin: #0ea5e9;
+  --ts-status-todo: #3b82f6;
+  --ts-status-in-progress: #f59e0b;
+  --ts-status-blocked: #ef4444;
+  --ts-status-done: #10b981;
   color: var(--ts-dark);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.96), transparent 24%),
@@ -706,19 +710,19 @@ a {
 }
 
 .today-card.blocked {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-blocked) 18%, white), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.todo {
-  background: linear-gradient(180deg, rgba(156, 163, 175, 0.24), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-todo) 22%, white), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.in-progress {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-in-progress) 22%, white), rgba(245, 250, 255, 0.96));
 }
 
 .today-card.done {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.18), rgba(245, 250, 255, 0.96));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-done) 18%, white), rgba(245, 250, 255, 0.96));
 }
 
 .today-card h3 {
@@ -777,27 +781,27 @@ a {
 }
 
 .status-select.blocked {
-  background: rgba(239, 68, 68, 0.16);
-  border-color: rgba(239, 68, 68, 0.32);
-  color: #b42318;
+  background: color-mix(in srgb, var(--ts-status-blocked) 16%, white);
+  border-color: color-mix(in srgb, var(--ts-status-blocked) 32%, white);
+  color: var(--ts-status-blocked);
 }
 
 .status-select.todo {
-  background: rgba(156, 163, 175, 0.2);
-  border-color: rgba(156, 163, 175, 0.34);
-  color: #59616d;
+  background: color-mix(in srgb, var(--ts-status-todo) 18%, white);
+  border-color: color-mix(in srgb, var(--ts-status-todo) 34%, white);
+  color: var(--ts-status-todo);
 }
 
 .status-select.in-progress {
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.34);
-  color: #b45309;
+  background: color-mix(in srgb, var(--ts-status-in-progress) 20%, white);
+  border-color: color-mix(in srgb, var(--ts-status-in-progress) 34%, white);
+  color: var(--ts-status-in-progress);
 }
 
 .status-select.done {
-  background: rgba(16, 185, 129, 0.2);
-  border-color: rgba(16, 185, 129, 0.34);
-  color: #047857;
+  background: color-mix(in srgb, var(--ts-status-done) 20%, white);
+  border-color: color-mix(in srgb, var(--ts-status-done) 34%, white);
+  color: var(--ts-status-done);
 }
 
 .today-empty {
@@ -821,19 +825,19 @@ a {
 }
 
 .board-column.blocked {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-blocked) 16%, white), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.todo {
-  background: linear-gradient(180deg, rgba(156, 163, 175, 0.18), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-todo) 18%, white), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.in-progress {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.18), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-in-progress) 18%, white), rgba(245, 250, 255, 0.92));
 }
 
 .board-column.done {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.16), rgba(245, 250, 255, 0.92));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-done) 16%, white), rgba(245, 250, 255, 0.92));
 }
 
 .board-column header {
@@ -861,19 +865,19 @@ a {
 }
 
 .board-column.blocked .column-icon {
-  color: var(--ts-error);
+  color: var(--ts-status-blocked);
 }
 
 .board-column.todo .column-icon {
-  color: #6b7280;
+  color: var(--ts-status-todo);
 }
 
 .board-column.in-progress .column-icon {
-  color: var(--ts-warning);
+  color: var(--ts-status-in-progress);
 }
 
 .board-column.done .column-icon {
-  color: var(--ts-success);
+  color: var(--ts-status-done);
 }
 
 .board-column h3,
@@ -901,23 +905,42 @@ a {
 }
 
 .task-card.blocked {
-  background: linear-gradient(180deg, rgba(239, 68, 68, 0.16), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(239, 68, 68, 0.24);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-blocked) 16%, white), rgba(245, 250, 255, 0.96));
+  border: 1px solid color-mix(in srgb, var(--ts-status-blocked) 24%, white);
 }
 
 .task-card.todo {
-  background: linear-gradient(180deg, rgba(156, 163, 175, 0.2), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(156, 163, 175, 0.24);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-todo) 18%, white), rgba(245, 250, 255, 0.96));
+  border: 1px solid color-mix(in srgb, var(--ts-status-todo) 24%, white);
 }
 
 .task-card.in-progress {
-  background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(245, 158, 11, 0.24);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-in-progress) 16%, white), rgba(245, 250, 255, 0.96));
+  border: 1px solid color-mix(in srgb, var(--ts-status-in-progress) 24%, white);
 }
 
 .task-card.done {
-  background: linear-gradient(180deg, rgba(16, 185, 129, 0.16), rgba(245, 250, 255, 0.96));
-  border: 1px solid rgba(16, 185, 129, 0.24);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ts-status-done) 16%, white), rgba(245, 250, 255, 0.96));
+  border: 1px solid color-mix(in srgb, var(--ts-status-done) 24%, white);
+}
+
+.admin-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-color-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-color-swatch {
+  width: 3rem;
+  min-width: 3rem;
+  height: 2.6rem;
+  padding: 0.2rem;
 }
 
 .due-pill {

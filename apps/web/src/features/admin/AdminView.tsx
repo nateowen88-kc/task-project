@@ -14,6 +14,7 @@ import { SectionHeader, SectionHeaderLead } from "../../components/layout/Sectio
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
+import { THEME_COLOR_GROUPS, isValidHexColor, normalizeHexColor, type ThemeColorConfig } from "../../../../../src/shared/theme-config.js";
 import type {
   AppConfigFormState,
   AdminFormState,
@@ -101,6 +102,37 @@ function buildWorkspaceDraft(workspace: AdminWorkspace): WorkspaceSettingsFormSt
     ownerUserId: workspace.ownerUserId,
     allowMemberTaskCreation: workspace.allowMemberTaskCreation,
   };
+}
+
+function ThemeColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const colorValue = isValidHexColor(value) ? normalizeHexColor(value) : "#000000";
+
+  return (
+    <label>
+      {label}
+      <div className="admin-color-input-row">
+        <input
+          className="admin-color-swatch"
+          type="color"
+          value={colorValue}
+          onChange={(event) => onChange(normalizeHexColor(event.target.value))}
+        />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value.toUpperCase())}
+          placeholder="#000000"
+        />
+      </div>
+    </label>
+  );
 }
 
 export function AdminView({
@@ -473,6 +505,52 @@ export function AdminView({
               </button>
               <button className="primary-button" type="submit" disabled={isAppConfigSaving || !hasLoadedAppConfig}>
                 {isAppConfigSaving ? "Saving..." : "Save team options"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="admin-form-panel">
+          <div className="section-heading">
+            <SectionHeaderLead>
+              <p className="eyebrow">Theme settings</p>
+              <h2>Color scheme</h2>
+            </SectionHeaderLead>
+          </div>
+
+          <form className="task-form" onSubmit={onAppConfigSubmit}>
+            {THEME_COLOR_GROUPS.map((group) => (
+              <div key={group.title} className="detail-card">
+                <div className="detail-card-top">
+                  <strong>{group.title}</strong>
+                </div>
+                <div className="admin-theme-grid">
+                  {group.fields.map((field) => (
+                    <ThemeColorField
+                      key={field.key}
+                      label={field.label}
+                      value={appConfigForm.themeColors[field.key]}
+                      onChange={(value) =>
+                        onAppConfigFormChange((current) => ({
+                          ...current,
+                          themeColors: {
+                            ...current.themeColors,
+                            [field.key]: value,
+                          } as ThemeColorConfig,
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="admin-form-actions">
+              <button className="ghost-button" type="button" onClick={onResetAppConfigForm}>
+                Reset
+              </button>
+              <button className="primary-button" type="submit" disabled={isAppConfigSaving || !hasLoadedAppConfig}>
+                {isAppConfigSaving ? "Saving..." : "Save color scheme"}
               </button>
             </div>
           </form>

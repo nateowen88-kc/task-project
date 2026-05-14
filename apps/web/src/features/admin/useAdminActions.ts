@@ -17,6 +17,7 @@ import {
   updateWorkspaceStatus,
   updateAdminUser,
 } from "../../api";
+import { DEFAULT_THEME_COLORS } from "../../../../../src/shared/theme-config.js";
 
 function toErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
@@ -79,6 +80,7 @@ function createEmptyAppConfigForm(): AppConfigFormState {
     appBaseUrl: "",
     directReportNameOptions: [],
     directReportRoleOptions: [],
+    themeColors: { ...DEFAULT_THEME_COLORS },
   };
 }
 
