@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import type { DirectReport, OneOnOneCadence } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
@@ -31,6 +31,17 @@ function includeCurrentOption(options: Array<{ value: string; label: string }>, 
   return [{ value: normalized, label: normalized }, ...options];
 }
 
+type TeamViewProps = {
+  directReports: DirectReport[];
+  setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
+  directReportNameOptions: string[];
+  directReportRoleOptions: string[];
+  todayBadge: { month: string; day: number; weekday: string };
+  onError: (message: string | null) => void;
+  embedded?: boolean;
+  leading?: ReactNode;
+};
+
 export function TeamView({
   directReports,
   setDirectReports,
@@ -38,14 +49,9 @@ export function TeamView({
   directReportRoleOptions,
   todayBadge,
   onError,
-}: {
-  directReports: DirectReport[];
-  setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
-  directReportNameOptions: string[];
-  directReportRoleOptions: string[];
-  todayBadge: { month: string; day: number; weekday: string };
-  onError: (message: string | null) => void;
-}) {
+  embedded = false,
+  leading,
+}: TeamViewProps) {
   const {
     selectedReportId,
     setSelectedReportId,
@@ -140,17 +146,8 @@ export function TeamView({
     }
   }
 
-  return (
-    <section className="panel admin-panel">
-      <SectionHeader
-        wide
-        eyebrow="Manager Workspace"
-        title="Team"
-        leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
-        actions={<span>Manage your direct reports and their standing 1:1 cadence here.</span>}
-      />
-
-      <section className="admin-form-panel">
+  const teamContent = (
+    <section className="admin-form-panel">
         <div className="section-heading">
           <SectionHeaderLead>
             <p className="eyebrow">Your team</p>
@@ -322,8 +319,9 @@ export function TeamView({
           </div>
         )}
       </section>
+  );
 
-      {isCreateModalOpen ? (
+  const createModal = isCreateModalOpen ? (
         <div className="modal-backdrop" onClick={() => setIsCreateModalOpen(false)} role="presentation">
           <div className="modal-card" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
             <div className="modal-header">
@@ -430,7 +428,28 @@ export function TeamView({
             </form>
           </div>
         </div>
-      ) : null}
+      ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        {teamContent}
+        {createModal}
+      </>
+    );
+  }
+
+  return (
+    <section className="panel admin-panel">
+      <SectionHeader
+        wide
+        eyebrow="Manager Workspace"
+        title="Team"
+        leading={leading ?? <TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
+        actions={<span>Manage your direct reports and their standing 1:1 cadence here.</span>}
+      />
+      {teamContent}
+      {createModal}
     </section>
   );
 }

@@ -19,7 +19,6 @@ import { InboxView } from "./features/inbox/InboxView";
 import { NotificationsView } from "./features/notifications/NotificationsView";
 import { AdminView } from "./features/admin/AdminView";
 import { OneOnOnesView } from "./features/one-on-ones/OneOnOnesView";
-import { TeamView } from "./features/team/TeamView";
 import {
   AppView,
   VIEW_ICONS,
@@ -387,7 +386,7 @@ export default function App() {
   }, [activeView, hasLoadedNotifications, refreshAppData, session]);
 
   useEffect(() => {
-    if (!session || (activeView !== "one-on-ones" && activeView !== "team")) {
+    if (!session || (activeView !== "one-on-ones" && activeView !== "admin")) {
       return;
     }
 
@@ -734,17 +733,6 @@ export default function App() {
             />
           )}
 
-          {activeView === "team" && (
-            <TeamView
-              directReports={directReports}
-              setDirectReports={setDirectReports}
-              directReportNameOptions={appConfigForm.directReportNameOptions}
-              directReportRoleOptions={appConfigForm.directReportRoleOptions}
-              todayBadge={todayBadge}
-              onError={setError}
-            />
-          )}
-
           {activeView === "one-on-ones" && (
             <OneOnOnesView
               directReports={directReports}
@@ -815,6 +803,8 @@ export default function App() {
               adminUsers={adminUsers}
               adminWorkspaces={adminWorkspaces}
               adminInvites={adminInvites}
+              directReports={directReports}
+              setDirectReports={setDirectReports}
               adminForm={adminForm}
               inviteForm={inviteForm}
               adminEditingUserId={adminEditingUserId}
@@ -852,6 +842,7 @@ export default function App() {
               roleLabels={ROLE_LABELS}
               todayBadge={todayBadge}
               workspaceName={session.workspace.name}
+              onError={setError}
               onResetForm={resetAdminForm}
               onResetInviteForm={resetInviteForm}
               onResetWorkspaceForm={resetWorkspaceForm}

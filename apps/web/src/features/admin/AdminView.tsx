@@ -1,7 +1,9 @@
+import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useState } from "react";
 import {
   AdminUser,
   AdminWorkspace,
+  DirectReport,
   TaskImportance,
   TaskPlaybook,
   TaskStatus,
@@ -14,6 +16,7 @@ import { SectionHeader, SectionHeaderLead } from "../../components/layout/Sectio
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
 import { formatReceivedLabel } from "../../lib/formatters";
+import { TeamView } from "../team/TeamView";
 import { THEME_COLOR_GROUPS, isValidHexColor, normalizeHexColor, type ThemeColorConfig } from "../../../../../src/shared/theme-config.js";
 import type {
   AppConfigFormState,
@@ -27,6 +30,8 @@ type AdminViewProps = {
   adminUsers: AdminUser[];
   adminWorkspaces: AdminWorkspace[];
   adminInvites: WorkspaceInvite[];
+  directReports: DirectReport[];
+  setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
   adminForm: AdminFormState;
   inviteForm: InviteFormState;
   adminEditingUserId: string | null;
@@ -64,6 +69,7 @@ type AdminViewProps = {
   roleLabels: Record<WorkspaceRole, string>;
   todayBadge: { month: string; day: number; weekday: string };
   workspaceName: string;
+  onError: (message: string | null) => void;
   onResetForm: () => void;
   onResetInviteForm: () => void;
   onResetWorkspaceForm: () => void;
@@ -95,6 +101,8 @@ type AdminViewProps = {
   onWorkspaceStatusChange: (workspaceId: string, isActive: boolean) => void;
   onRevokeInvite: (inviteId: string) => void;
 };
+
+type AdminSection = "users" | "teams" | "workspaces" | "settings";
 
 function buildWorkspaceDraft(workspace: AdminWorkspace): WorkspaceSettingsFormState {
   return {
@@ -139,6 +147,8 @@ export function AdminView({
   adminUsers,
   adminWorkspaces,
   adminInvites,
+  directReports,
+  setDirectReports,
   adminForm,
   inviteForm,
   adminEditingUserId,
@@ -176,6 +186,7 @@ export function AdminView({
   roleLabels,
   todayBadge,
   workspaceName,
+  onError,
   onResetForm,
   onResetInviteForm,
   onResetWorkspaceForm,
@@ -211,6 +222,7 @@ export function AdminView({
   const directReportRoleOptionsText = appConfigForm.directReportRoleOptions.join("\n");
 
   const [workspaceDrafts, setWorkspaceDrafts] = useState<Record<string, WorkspaceSettingsFormState>>({});
+  const [activeSection, setActiveSection] = useState<AdminSection>("users");
 
   useEffect(() => {
     setWorkspaceDrafts((current) => {
@@ -224,17 +236,36 @@ export function AdminView({
     });
   }, [adminWorkspaces]);
 
+  useEffect(() => {
+    if (activeSection === "workspaces" && !canCreateWorkspaces) {
+      setActiveSection("users");
+    }
+  }, [activeSection, canCreateWorkspaces]);
+
+  useEffect(() => {
+    if (adminEditingUserId) {
+      setActiveSection("users");
+    }
+  }, [adminEditingUserId]);
+
+  const sectionOptions: Array<{ key: AdminSection; label: string }> = [
+    { key: "users", label: "Users" },
+    { key: "teams", label: "Teams" },
+    ...(canCreateWorkspaces ? [{ key: "workspaces" as const, label: "Workspaces" }] : []),
+    { key: "settings", label: "Settings" },
+  ];
+
   return (
     <section className="panel admin-panel">
       <SectionHeader
         wide
         eyebrow="Workspace Admin"
-        title="Create and Manage User Accounts"
+        title="Admin"
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
         actions={
           <>
             <span>{workspaceName}</span>
-            {adminEditingUserId && (
+            {activeSection === "users" && adminEditingUserId && (
               <button className="ghost-button" type="button" onClick={onResetForm}>
                 New user
               </button>
@@ -243,7 +274,23 @@ export function AdminView({
         }
       />
 
+      <div className="view-toggle-group" style={{ marginBottom: "1rem" }}>
+        {sectionOptions.map((section) => (
+          <button
+            key={section.key}
+            className={`ghost-button compact ${activeSection === section.key ? "active-filter" : ""}`}
+            type="button"
+            onClick={() => setActiveSection(section.key)}
+            aria-pressed={activeSection === section.key}
+          >
+            {section.label}
+          </button>
+        ))}
+      </div>
+
       <div className="admin-grid">
+        {activeSection === "users" && (
+          <>
         <section className="admin-form-panel">
           <div className="section-heading">
             <SectionHeaderLead>
@@ -453,7 +500,11 @@ export function AdminView({
             )}
           </div>
         </section>
+          </>
+        )}
 
+        {activeSection === "teams" && (
+          <>
         <section className="admin-form-panel">
           <div className="section-heading">
             <SectionHeaderLead>
@@ -509,7 +560,19 @@ export function AdminView({
             </div>
           </form>
         </section>
+        <TeamView
+          embedded
+          directReports={directReports}
+          setDirectReports={setDirectReports}
+          directReportNameOptions={appConfigForm.directReportNameOptions}
+          directReportRoleOptions={appConfigForm.directReportRoleOptions}
+          todayBadge={todayBadge}
+          onError={onError}
+        />
+          </>
+        )}
 
+        {activeSection === "settings" && (
         <section className="admin-form-panel">
           <div className="section-heading">
             <SectionHeaderLead>
@@ -555,8 +618,9 @@ export function AdminView({
             </div>
           </form>
         </section>
+        )}
 
-        {canCreateWorkspaces && (
+        {activeSection === "workspaces" && canCreateWorkspaces && (
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
@@ -636,7 +700,7 @@ export function AdminView({
           </section>
         )}
 
-        {canCreateWorkspaces && (
+        {activeSection === "workspaces" && canCreateWorkspaces && (
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
@@ -770,7 +834,7 @@ export function AdminView({
           </section>
         )}
 
-        {canCreateWorkspaces && (
+        {activeSection === "workspaces" && canCreateWorkspaces && (
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
@@ -860,7 +924,7 @@ export function AdminView({
           </section>
         )}
 
-        {canCreateWorkspaces && (
+        {activeSection === "workspaces" && canCreateWorkspaces && (
           <section className="admin-form-panel">
             <div className="section-heading">
               <SectionHeaderLead>
