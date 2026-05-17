@@ -404,6 +404,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 1rem;
   margin-bottom: 1rem;
 }
@@ -430,6 +431,7 @@ a {
 .board-header-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 1rem;
 }
 
@@ -645,11 +647,13 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
 .capture-header-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
@@ -788,6 +792,7 @@ a {
 
 .today-actions select {
   min-width: 8rem;
+  max-width: 100%;
 }
 
 .today-actions {
@@ -1099,6 +1104,7 @@ a {
 .ghost-button {
   border: 0;
   border-radius: 999px;
+  max-width: 100%;
   padding: 0.9rem 1.2rem;
 }
 
@@ -1432,15 +1438,17 @@ a {
   .app-shell {
     grid-template-columns: 1fr;
   }
-    .agenda-buckets-grid {
+
+  .agenda-buckets-grid {
     grid-template-columns: 1fr;
   }
 
   .side-rail {
     position: static;
     height: auto;
-    flex-direction: row;
-    justify-content: space-between;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: flex-start;
     padding: 0.75rem;
   }
 
@@ -1451,22 +1459,25 @@ a {
   }
 
   .side-rail-nav {
+    min-width: 0;
+    flex: 1 1 26rem;
     flex-direction: row;
+    flex-wrap: wrap;
   }
 
   .rail-destination {
-    flex: 1;
+    flex: 1 1 7.5rem;
     padding: 0.65rem 0.5rem;
   }
 
   .side-rail-meta {
-    width: auto;
     min-width: 0;
+    flex: 1 1 12rem;
     text-align: left;
   }
 
   .rail-signout {
-    width: auto;
+    flex: 0 0 auto;
     padding-inline: 1rem;
   }
 
@@ -1530,7 +1541,7 @@ a {
 
   .side-rail-nav {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0.5rem;
   }
 
@@ -1542,6 +1553,11 @@ a {
 
   .rail-icon {
     width: 100%;
+  }
+
+  .primary-button,
+  .ghost-button {
+    padding: 0.8rem 1rem;
   }
 
   .modal-card {
@@ -1566,6 +1582,73 @@ a {
   .modal-actions .primary-button,
   .modal-actions .ghost-button {
     width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell,
+  .workspace {
+    gap: 1rem;
+  }
+
+  .side-rail {
+    padding: 0.7rem;
+  }
+
+  .side-rail-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .rail-destination {
+    width: 100%;
+    padding: 0.55rem 0.4rem;
+  }
+
+  .rail-icon {
+    height: 2rem;
+  }
+
+  .rail-label,
+  .rail-count {
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
+  }
+
+  .rail-signout {
+    padding: 0.7rem 0.85rem;
+  }
+
+  .section-heading,
+  .capture-card-top,
+  .capture-actions,
+  .today-card-top,
+  .today-actions,
+  .task-card-top,
+  .detail-card-top,
+  .board-header-actions,
+  .admin-user-actions,
+  .admin-user-actions-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .capture-header-actions {
+    width: 100%;
+  }
+
+  .capture-header-actions > *,
+  .today-actions > *,
+  .board-header-actions > *,
+  .admin-form-actions > *,
+  .modal-actions-left > *,
+  .modal-actions-right > * {
+    width: 100%;
+  }
+
+  .primary-button,
+  .ghost-button {
+    font-size: 0.92rem;
+    padding: 0.78rem 0.95rem;
   }
 }
 
