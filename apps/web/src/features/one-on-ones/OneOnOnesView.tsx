@@ -13,12 +13,119 @@ const meetingStatusOptions: Array<{ value: OneOnOneMeetingStatus; label: string 
   { value: "canceled", label: "Canceled" },
 ];
 
+const WIN_KEYWORDS = ["win", "won", "shipped", "launched", "completed", "closed", "resolved", "improved", "progress"];
+const RISK_KEYWORDS = ["blocked", "blocker", "risk", "stuck", "delay", "behind", "issue", "concern", "slip"];
+const DECISION_KEYWORDS = ["decision", "decide", "approval", "approve", "input", "escalate", "alignment", "tradeoff"];
+
 function toLocalDateTime(value: string | null) {
   if (!value) {
     return "";
   }
 
   return new Date(value).toISOString().slice(0, 16);
+}
+
+function dedupeStrings(values: string[]) {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
+
+function extractNoteLines(...blocks: Array<string | null | undefined>) {
+  return dedupeStrings(
+    blocks.flatMap((block) =>
+      (block ?? "")
+        .split(/\n+/)
+        .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+        .map((line) => line.replace(/^[-*•]\s*/, "").trim())
+        .filter((line) => line.length > 0),
+    ),
+  );
+}
+
+function matchesKeyword(line: string, keywords: string[]) {
+  const normalized = line.toLowerCase();
+  return keywords.some((keyword) => normalized.includes(keyword));
+}
+
+function formatActionItem(task: DirectReport["openActionItems"][number]) {
+  const labels: string[] = [];
+  if (task.status === "blocked") {
+    labels.push("blocked");
+  }
+  labels.push(`due ${formatReceivedLabel(task.dueDate)}`);
+
+  return `${task.details || task.title} (${labels.join(", ")})`;
+}
+
+function buildGeneratedAgenda(report: DirectReport | null) {
+  if (!report) {
+    return {
+      wins: [] as string[],
+      risks: [] as string[],
+      decisionsNeeded: [] as string[],
+      followUps: [] as string[],
+      recentNotes: [] as string[],
+    };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const incompleteStandingItems = report.standingItems
+    .filter((item) => item.completedAt === null)
+    .map((item) => item.body);
+  const completedStandingItems = report.standingItems
+    .filter((item) => item.completedAt !== null)
+    .sort((left, right) => new Date(right.completedAt ?? 0).getTime() - new Date(left.completedAt ?? 0).getTime())
+    .slice(0, 3)
+    .map((item) => item.body);
+  const overdueTasks = report.openActionItems.filter((task) => task.dueDate < today);
+  const blockedTasks = report.openActionItems.filter((task) => task.status === "blocked");
+  const recentMeetings = report.meetings.slice(0, 3);
+  const recentNoteLines = extractNoteLines(
+    report.notes,
+    ...recentMeetings.flatMap((meeting) => [meeting.sharedNotes, meeting.privateNotes]),
+  );
+
+  const wins = dedupeStrings([
+    ...completedStandingItems,
+    ...recentNoteLines.filter((line) => matchesKeyword(line, WIN_KEYWORDS)),
+  ]).slice(0, 6);
+
+  const risks = dedupeStrings([
+    ...blockedTasks.map(formatActionItem),
+    ...overdueTasks.map(formatActionItem),
+    ...recentNoteLines.filter((line) => matchesKeyword(line, RISK_KEYWORDS)),
+  ]).slice(0, 6);
+
+  const decisionsNeeded = dedupeStrings(
+    recentNoteLines.filter((line) => matchesKeyword(line, DECISION_KEYWORDS)),
+  ).slice(0, 6);
+
+  const followUps = dedupeStrings([
+    ...report.openActionItems.map(formatActionItem),
+    ...incompleteStandingItems,
+    ...recentMeetings.flatMap((meeting) => meeting.nextActionItems),
+  ]).slice(0, 8);
+
+  return {
+    wins,
+    risks,
+    decisionsNeeded,
+    followUps,
+    recentNotes: recentNoteLines.slice(0, 6),
+  };
+}
+
+function buildAgendaDetailsText(agenda: ReturnType<typeof buildGeneratedAgenda>) {
+  const sections = [
+    { title: "Wins", items: agenda.wins },
+    { title: "Risks", items: agenda.risks },
+    { title: "Decisions needed", items: agenda.decisionsNeeded },
+    { title: "Follow-ups", items: agenda.followUps },
+    { title: "Recent notes", items: agenda.recentNotes },
+  ].filter((section) => section.items.length > 0);
+
+  return sections
+    .map((section) => `${section.title}\n${section.items.map((item) => `- ${item}`).join("\n")}`)
+    .join("\n\n");
 }
 
 export function OneOnOnesView({
@@ -69,6 +176,7 @@ export function OneOnOnesView({
     () => directReports.find((report) => report.id === selectedReportId) ?? null,
     [directReports, selectedReportId],
   );
+  const generatedAgenda = useMemo(() => buildGeneratedAgenda(selectedReport), [selectedReport]);
 
   useEffect(() => {
     if (!directReportOptions.length) {
@@ -227,6 +335,79 @@ export function OneOnOnesView({
                 ) : (
                   <p>No unresolved 1:1 action items.</p>
                 )}
+              </div>
+
+              <div className="detail-card">
+                <div className="detail-card-top">
+                  <strong>Suggested agenda</strong>
+                  <button
+                    className="ghost-button compact"
+                    type="button"
+                    onClick={() => setNewMeetingDetails(buildAgendaDetailsText(generatedAgenda))}
+                  >
+                    Use in notes
+                  </button>
+                </div>
+                <div className="task-detail-columns">
+                  <div className="detail-card">
+                    <strong>Wins</strong>
+                    {generatedAgenda.wins.length ? (
+                      <ul className="detail-list-inline">
+                        {generatedAgenda.wins.map((item, index) => (
+                          <li key={`win-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No recent wins detected yet.</p>
+                    )}
+                  </div>
+                  <div className="detail-card">
+                    <strong>Risks</strong>
+                    {generatedAgenda.risks.length ? (
+                      <ul className="detail-list-inline">
+                        {generatedAgenda.risks.map((item, index) => (
+                          <li key={`risk-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No active risks detected.</p>
+                    )}
+                  </div>
+                  <div className="detail-card">
+                    <strong>Decisions needed</strong>
+                    {generatedAgenda.decisionsNeeded.length ? (
+                      <ul className="detail-list-inline">
+                        {generatedAgenda.decisionsNeeded.map((item, index) => (
+                          <li key={`decision-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No explicit decision items found.</p>
+                    )}
+                  </div>
+                  <div className="detail-card">
+                    <strong>Follow-ups</strong>
+                    {generatedAgenda.followUps.length ? (
+                      <ul className="detail-list-inline">
+                        {generatedAgenda.followUps.map((item, index) => (
+                          <li key={`followup-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No follow-up items yet.</p>
+                    )}
+                  </div>
+                </div>
+                {generatedAgenda.recentNotes.length ? (
+                  <div className="detail-card" style={{ marginTop: "12px" }}>
+                    <strong>Recent notes</strong>
+                    <ul className="detail-list-inline">
+                      {generatedAgenda.recentNotes.map((item, index) => (
+                        <li key={`note-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
 
               <label>
