@@ -8,6 +8,7 @@ import {
   Task,
   TaskDetail,
   TaskDraft,
+  DirectReport,
   TaskStatus,
   TodayItem,
   archiveTask,
@@ -33,6 +34,7 @@ function toErrorMessage(error: unknown, fallback: string) {
 
 type UseTaskActionsOptions = {
   tasks: Task[];
+  directReports: DirectReport[];
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   setAgenda: React.Dispatch<React.SetStateAction<AgendaResponse | null>>;
   setNotifications: React.Dispatch<React.SetStateAction<Notification[]>>;
@@ -55,6 +57,7 @@ type UseTaskActionsOptions = {
 
 export function useTaskActions({
   tasks,
+  directReports,
   setTasks,
   setAgenda,
   setNotifications,
@@ -69,6 +72,11 @@ export function useTaskActions({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [reviewCaptureId, setReviewCaptureId] = useState<string | null>(null);
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [captureReviewOptions, setCaptureReviewOptions] = useState({
+    directReportId: "",
+    createOneOnOneTalkingPoint: false,
+    oneOnOneTalkingPoint: "",
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDetailLoading, setIsDetailLoading] = useState(false);
@@ -82,6 +90,11 @@ export function useTaskActions({
     setReviewCaptureId(null);
     setTaskDetail(null);
     setCommentDraft("");
+    setCaptureReviewOptions({
+      directReportId: "",
+      createOneOnOneTalkingPoint: false,
+      oneOnOneTalkingPoint: "",
+    });
     onError(null);
     setIsDeleting(false);
     setIsDetailLoading(false);
@@ -120,7 +133,7 @@ export function useTaskActions({
       if (editingId) {
         savedTask = await updateTask(editingId, draft);
       } else if (reviewCaptureId) {
-        await acceptCapturedItem(reviewCaptureId, draft);
+        await acceptCapturedItem(reviewCaptureId, draft, captureReviewOptions);
       } else {
         savedTask = await createTask(draft);
       }
@@ -201,6 +214,11 @@ export function useTaskActions({
     setDraft(createDraftFromCapture(item));
     setTaskDetail(null);
     setCommentDraft("");
+    setCaptureReviewOptions({
+      directReportId: directReports[0]?.id ?? "",
+      createOneOnOneTalkingPoint: false,
+      oneOnOneTalkingPoint: item.title,
+    });
     onError(null);
     setIsModalOpen(true);
   }
@@ -363,6 +381,8 @@ export function useTaskActions({
     reviewCaptureId,
     draggedTaskId,
     setDraggedTaskId,
+    captureReviewOptions,
+    setCaptureReviewOptions,
     isSaving,
     isDeleting,
     isDetailLoading,

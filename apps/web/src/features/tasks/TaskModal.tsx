@@ -1,5 +1,5 @@
 import { type FormEvent, type ReactNode, type RefObject, useEffect, useRef, useState } from "react";
-import type { RecurrenceRuleValue, TaskDetail, TaskDraft, TaskImportance, TaskPermissions, WorkspaceMember } from "../../api";
+import type { DirectReport, RecurrenceRuleValue, TaskDetail, TaskDraft, TaskImportance, TaskPermissions, WorkspaceMember } from "../../api";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { formatDueLabel, formatReceivedLabel, formatReminderLabel } from "../../lib/formatters";
 import {
@@ -23,6 +23,13 @@ type TaskModalProps = {
   workspaceMembers: WorkspaceMember[];
   currentUserId: string;
   canAssignTasks: boolean;
+  isCaptureReview: boolean;
+  directReports: DirectReport[];
+  captureReviewOptions: {
+    directReportId: string;
+    createOneOnOneTalkingPoint: boolean;
+    oneOnOneTalkingPoint: string;
+  };
   taskPermissions: TaskPermissions | null;
   onArchive: (() => Promise<void>) | null;
   onClose: () => void;
@@ -31,6 +38,13 @@ type TaskModalProps = {
   onDelete: (() => Promise<void>) | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onDraftChange: (updater: (current: TaskDraft) => TaskDraft) => void;
+  onCaptureReviewOptionsChange: (
+    updater: (current: { directReportId: string; createOneOnOneTalkingPoint: boolean; oneOnOneTalkingPoint: string }) => {
+      directReportId: string;
+      createOneOnOneTalkingPoint: boolean;
+      oneOnOneTalkingPoint: string;
+    },
+  ) => void;
 };
 
 function parseDateValue(value: string) {
@@ -291,6 +305,9 @@ function TaskModal({
   workspaceMembers,
   currentUserId,
   canAssignTasks,
+  isCaptureReview,
+  directReports,
+  captureReviewOptions,
   taskPermissions,
   onArchive,
   onClose,
@@ -299,6 +316,7 @@ function TaskModal({
   onDelete,
   onSubmit,
   onDraftChange,
+  onCaptureReviewOptionsChange,
 }: TaskModalProps) {
   const isReadOnly = Boolean(editingId && taskPermissions && !taskPermissions.canEdit);
   const canComment = editingId ? Boolean(taskPermissions?.canComment) : false;
@@ -314,6 +332,10 @@ function TaskModal({
       label: member.name,
     })),
   ];
+  const directReportOptions = directReports.map((report) => ({
+    value: report.id,
+    label: `${report.reportName} - ${report.role || "No role"}`,
+  }));
 
   return (
     <div className="modal-backdrop" onClick={onClose} role="presentation">
@@ -430,6 +452,65 @@ function TaskModal({
                   />
                 </label>
               </div>
+
+              {isCaptureReview && directReportOptions.length > 0 && (
+                <div className="detail-card">
+                  <div className="detail-card-top">
+                    <strong>1:1 follow-up</strong>
+                    <span>Optional</span>
+                  </div>
+                  <div className="task-form">
+                    <label className="toggle-row">
+                      <input
+                        type="checkbox"
+                        checked={captureReviewOptions.createOneOnOneTalkingPoint}
+                        onChange={(event) =>
+                          onCaptureReviewOptionsChange((current) => ({
+                            ...current,
+                            createOneOnOneTalkingPoint: event.target.checked,
+                          }))
+                        }
+                      />
+                      <span>Add this inbox item to a team member&apos;s 1:1 agenda</span>
+                    </label>
+
+                    {captureReviewOptions.createOneOnOneTalkingPoint && (
+                      <>
+                        <label>
+                          Team member
+                          <AppSelect
+                            ariaLabel="Direct report for 1:1 talking point"
+                            className="app-select"
+                            menuClassName="app-select-menu"
+                            value={captureReviewOptions.directReportId}
+                            options={directReportOptions}
+                            onChange={(nextReportId) =>
+                              onCaptureReviewOptionsChange((current) => ({
+                                ...current,
+                                directReportId: nextReportId,
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          Talking point
+                          <textarea
+                            rows={3}
+                            value={captureReviewOptions.oneOnOneTalkingPoint}
+                            onChange={(event) =>
+                              onCaptureReviewOptionsChange((current) => ({
+                                ...current,
+                                oneOnOneTalkingPoint: event.target.value,
+                              }))
+                            }
+                            placeholder="What should be discussed in the next 1:1?"
+                          />
+                        </label>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="recurrence-panel">
                 <label className="toggle-row">

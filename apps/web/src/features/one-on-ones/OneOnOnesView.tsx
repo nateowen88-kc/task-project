@@ -1,6 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
-import type { DirectReport, OneOnOneMeetingStatus } from "../../api";
+import type { DirectReport, OneOnOneMeetingStatus, Task } from "../../api";
 import { SectionHeader, SectionHeaderLead } from "../../components/layout/SectionHeader";
 import { AppSelect } from "../../components/ui/AppSelect";
 import { TodayCalendarBadge } from "../../components/ui/TodayCalendarBadge";
@@ -128,14 +128,73 @@ function buildAgendaDetailsText(agenda: ReturnType<typeof buildGeneratedAgenda>)
     .join("\n\n");
 }
 
+function buildManagerDigest(directReports: DirectReport[], tasks: Task[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  const attentionTasks = tasks
+    .filter((task) => task.archivedAt === null && task.status !== "done")
+    .filter((task) => task.status === "blocked" || task.dueDate <= today)
+    .sort((left, right) => left.dueDate.localeCompare(right.dueDate))
+    .slice(0, 6)
+    .map((task) => {
+      const labels = [task.status === "blocked" ? "blocked" : null, `due ${formatReceivedLabel(task.dueDate)}`]
+        .filter(Boolean)
+        .join(", ");
+      return `${task.title} (${task.assigneeName ?? "Unassigned"}; ${labels})`;
+    });
+
+  const blockedReports = directReports
+    .map((report) => ({
+      reportName: report.reportName,
+      blockedItems: report.openActionItems.filter((item) => item.status === "blocked"),
+    }))
+    .filter((entry) => entry.blockedItems.length > 0)
+    .map((entry) => `${entry.reportName}: ${entry.blockedItems.map(formatActionItem).slice(0, 2).join("; ")}`);
+
+  const slippedReports = directReports
+    .map((report) => ({
+      reportName: report.reportName,
+      overdueItems: report.openActionItems.filter((item) => item.dueDate < today),
+    }))
+    .filter((entry) => entry.overdueItems.length > 0)
+    .map((entry) => `${entry.reportName}: ${entry.overdueItems.map(formatActionItem).slice(0, 2).join("; ")}`);
+
+  const discussToday = directReports
+    .map((report) => {
+      const agenda = buildGeneratedAgenda(report);
+      const hasMeetingToday = report.nextMeetingAt?.slice(0, 10) === today;
+      const keyItems = dedupeStrings([
+        ...agenda.risks.slice(0, 2),
+        ...agenda.decisionsNeeded.slice(0, 2),
+        ...agenda.followUps.slice(0, 2),
+      ]).slice(0, 3);
+
+      if (!hasMeetingToday && keyItems.length === 0) {
+        return null;
+      }
+
+      return `${report.reportName}${hasMeetingToday ? " (meeting today)" : ""}: ${keyItems.join("; ") || "General check-in"}`;
+    })
+    .filter((value): value is string => Boolean(value))
+    .slice(0, 6);
+
+  return {
+    attentionTasks,
+    blockedReports,
+    slippedReports,
+    discussToday,
+  };
+}
+
 export function OneOnOnesView({
   directReports,
+  tasks,
   setDirectReports,
   todayBadge,
   onError,
   onOpenTask,
 }: {
   directReports: DirectReport[];
+  tasks: Task[];
   setDirectReports: Dispatch<SetStateAction<DirectReport[]>>;
   todayBadge: { month: string; day: number; weekday: string };
   onError: (message: string | null) => void;
@@ -176,6 +235,7 @@ export function OneOnOnesView({
     () => directReports.find((report) => report.id === selectedReportId) ?? null,
     [directReports, selectedReportId],
   );
+  const managerDigest = useMemo(() => buildManagerDigest(directReports, tasks), [directReports, tasks]);
   const generatedAgenda = useMemo(() => buildGeneratedAgenda(selectedReport), [selectedReport]);
 
   useEffect(() => {
@@ -225,6 +285,66 @@ export function OneOnOnesView({
         leading={<TodayCalendarBadge month={todayBadge.month} day={todayBadge.day} weekday={todayBadge.weekday} />}
         actions={<span>Start a 1:1, capture notes, and turn follow-up items into private tasks.</span>}
       />
+
+      <section className="admin-form-panel">
+        <div className="section-heading">
+          <SectionHeaderLead>
+            <p className="eyebrow">Daily manager digest</p>
+            <h2>What needs attention today</h2>
+          </SectionHeaderLead>
+        </div>
+
+        <div className="task-detail-columns">
+          <div className="detail-card">
+            <strong>Needs your attention</strong>
+            {managerDigest.attentionTasks.length ? (
+              <ul className="detail-list-inline">
+                {managerDigest.attentionTasks.map((item, index) => (
+                  <li key={`attention-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No urgent manager-owned task issues detected.</p>
+            )}
+          </div>
+          <div className="detail-card">
+            <strong>Who is blocked</strong>
+            {managerDigest.blockedReports.length ? (
+              <ul className="detail-list-inline">
+                {managerDigest.blockedReports.map((item, index) => (
+                  <li key={`blocked-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No blocked direct reports right now.</p>
+            )}
+          </div>
+          <div className="detail-card">
+            <strong>What slipped</strong>
+            {managerDigest.slippedReports.length ? (
+              <ul className="detail-list-inline">
+                {managerDigest.slippedReports.map((item, index) => (
+                  <li key={`slipped-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No slipped follow-ups detected.</p>
+            )}
+          </div>
+          <div className="detail-card">
+            <strong>Discuss today</strong>
+            {managerDigest.discussToday.length ? (
+              <ul className="detail-list-inline">
+                {managerDigest.discussToday.map((item, index) => (
+                  <li key={`discuss-${index}`}>{item}</li>
+                ))}
+              </ul>
+            ) : (
+              <p>No critical team discussion items queued.</p>
+            )}
+          </div>
+        </div>
+      </section>
 
       <div className="one-on-one-grid">
         <section className="admin-form-panel">

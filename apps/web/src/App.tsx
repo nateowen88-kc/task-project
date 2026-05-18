@@ -184,8 +184,11 @@ export default function App() {
     commentDraft,
     setCommentDraft,
     editingId,
+    reviewCaptureId,
     draggedTaskId,
     setDraggedTaskId,
+    captureReviewOptions,
+    setCaptureReviewOptions,
     isSaving,
     isDeleting,
     isDetailLoading,
@@ -208,6 +211,7 @@ export default function App() {
     handleSnoozeTodayItem,
   } = useTaskActions({
     tasks,
+    directReports,
     setTasks,
     setAgenda,
     setNotifications,
@@ -736,6 +740,7 @@ export default function App() {
           {activeView === "one-on-ones" && (
             <OneOnOnesView
               directReports={directReports}
+              tasks={tasks}
               setDirectReports={setDirectReports}
               todayBadge={todayBadge}
               onError={setError}
@@ -892,6 +897,9 @@ export default function App() {
           workspaceMembers={workspaceMembers}
           currentUserId={session.user.id}
           canAssignTasks={canAssignTasks}
+          isCaptureReview={Boolean(!editingId && reviewCaptureId)}
+          directReports={directReports}
+          captureReviewOptions={captureReviewOptions}
           taskPermissions={activeTaskPermissions}
           onArchive={editingId ? handleArchiveTask : null}
           onClose={closeModal}
@@ -900,6 +908,9 @@ export default function App() {
           onDelete={editingId ? handleDeleteTask : null}
           onSubmit={handleSubmit}
           onDraftChange={(updater) => setDraft((current) => updater(current))}
+          onCaptureReviewOptionsChange={(updater) =>
+            setCaptureReviewOptions((current) => updater(current))
+          }
         />
       )}
     </>

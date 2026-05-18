@@ -482,6 +482,12 @@ export type TaskPayload = {
   recurrenceRule: RecurrenceRuleValue;
 };
 
+export type CapturedItemAcceptPayload = TaskPayload & {
+  directReportId?: string | null;
+  createOneOnOneTalkingPoint?: boolean;
+  oneOnOneTalkingPoint?: string | null;
+};
+
 export type CreateCommentPayload = {
   body: string;
 };

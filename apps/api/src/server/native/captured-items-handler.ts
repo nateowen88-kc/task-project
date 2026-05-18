@@ -116,12 +116,25 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
 
   const acceptMatch = matchPath(pathname, "/api/captured-items/:id/accept");
   if (method === "POST" && acceptMatch) {
-    const input = (await readJsonBody<Partial<TaskInput>>(request)) ?? {};
+    const acceptInput =
+      (await readJsonBody<
+        Partial<TaskInput> & {
+          directReportId?: string | null;
+          createOneOnOneTalkingPoint?: boolean;
+          oneOnOneTalkingPoint?: string | null;
+        }
+      >(request)) ?? {};
+    const reviewOptions = {
+      directReportId: acceptInput.directReportId ?? null,
+      createOneOnOneTalkingPoint: Boolean(acceptInput.createOneOnOneTalkingPoint),
+      oneOnOneTalkingPoint: acceptInput.oneOnOneTalkingPoint ?? null,
+    };
 
-    if (!validateTaskInput(input)) {
+    if (!validateTaskInput(acceptInput)) {
       sendJson(response, 400, { error: "Invalid task payload." });
       return;
     }
+    const taskInput: TaskInput = acceptInput;
 
     const existing = await prisma.capturedItem.findFirst({
       where: workspaceScopedIdWhere(auth, acceptMatch.id),
@@ -132,11 +145,11 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
       return;
     }
 
-    const recurrenceRule = normalizeRecurrence(input.isRecurring, input.recurrenceRule);
-    const status = statusMap[input.status];
-    const links = Array.from(new Set([...normalizeLinks(input.links), ...normalizeCaptureLinks(existing)]));
+    const recurrenceRule = normalizeRecurrence(taskInput.isRecurring, taskInput.recurrenceRule);
+    const status = statusMap[taskInput.status];
+    const links = Array.from(new Set([...normalizeLinks(taskInput.links), ...normalizeCaptureLinks(existing)]));
     const sortOrder = await getNextSortOrder(auth.workspace.id, status);
-    const assigneeId = await resolveTaskAssigneeId(auth, input.assigneeId);
+    const assigneeId = await resolveTaskAssigneeId(auth, taskInput.assigneeId);
 
     if (typeof assigneeId === "undefined") {
       sendJson(response, 400, { error: "Assignee must be a member of this workspace." });
@@ -148,18 +161,44 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
       return;
     }
 
+    let talkingPointReportId: string | null = null;
+    let talkingPointBody = "";
+
+    if (reviewOptions.createOneOnOneTalkingPoint) {
+      if (typeof reviewOptions.directReportId !== "string" || reviewOptions.directReportId.trim().length === 0) {
+        sendJson(response, 400, { error: "A team member is required to add a 1:1 talking point." });
+        return;
+      }
+
+      const report = await prisma.directReport.findFirst({
+        where: {
+          id: reviewOptions.directReportId,
+          workspaceId: auth.workspace.id,
+          managerUserId: auth.user.id,
+        },
+      });
+
+      if (!report) {
+        sendJson(response, 404, { error: "Direct report not found." });
+        return;
+      }
+
+      talkingPointReportId = report.id;
+      talkingPointBody = reviewOptions.oneOnOneTalkingPoint?.trim() || taskInput.title.trim();
+    }
+
     const task = await prisma.$transaction(async (tx) => {
       const createdTask = await tx.task.create({
         data: {
           workspaceId: auth.workspace.id,
           createdById: auth.user.id,
           assigneeId: assigneeId ?? auth.user.id,
-          title: input.title.trim(),
-          details: input.details?.trim() ?? "",
-          dueDate: toDateOnly(input.dueDate),
-          remindAt: toDateTime(input.remindAt),
+          title: taskInput.title.trim(),
+          details: taskInput.details?.trim() ?? "",
+          dueDate: toDateOnly(taskInput.dueDate),
+          remindAt: toDateTime(taskInput.remindAt),
           status,
-          importance: input.importance ? (importanceMap[input.importance] as any) : "MEDIUM",
+          importance: taskInput.importance ? (importanceMap[taskInput.importance] as any) : "MEDIUM",
           sortOrder,
           isRecurring: Boolean(recurrenceRule),
           recurrenceRule,
@@ -192,6 +231,25 @@ export default async function capturedItemsHandler(request: NativeRequest, respo
           taskId: createdTask.id,
         },
       });
+
+      if (talkingPointReportId && talkingPointBody) {
+        const sortOrder =
+          (
+            await tx.oneOnOneAgendaItem.aggregate({
+              where: { directReportId: talkingPointReportId },
+              _max: { sortOrder: true },
+            })
+          )._max.sortOrder ?? -1;
+
+        await tx.oneOnOneAgendaItem.create({
+          data: {
+            directReportId: talkingPointReportId,
+            body: talkingPointBody,
+            isPrivate: true,
+            sortOrder: sortOrder + 1,
+          },
+        });
+      }
 
       await createTaskActivity(
         tx,
